@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Stop Lightning Pose App if a dev or packaged instance is already running.
+# Matches honcho (Procfile.dev), uvicorn litpose_app, ng serve, and litpose run_app.
+# Usage: lpa-stop
+
+set -euo pipefail
+
+LPA_ROOT="${LPA_ROOT:-/teamspace/studios/this_studio/lightning-pose-app}"
+PORTS=(8080 4200)
+
+is_app_cmd() {
+  local cmd=$1
+  local cwd=$2
+  [[ "$cmd" == *lpa-stop* ]] && return 1
+  case "$cmd" in
+    *honcho*Procfile.dev*) return 0 ;;
+    *uvicorn*litpose_app*) return 0 ;;
+    *litpose\ run_app*|*litpose\ *run_app*) return 0 ;;
+  esac
+  if [[ "$cwd" == "$LPA_ROOT" || "$cwd" == "$LPA_ROOT"/* ]]; then
+    case "$cmd" in
+      *ng\ serve*) return 0 ;;
+      /bin/sh\ -c\ *uvicorn*|/bin/sh\ -c\ *ng\ serve*|/bin/sh\ -c\ *honcho*) return 0 ;;
+    esac
+  fi
+  return 1
+}
+
+collect_pids() {
+  local pid cmd cwd
+  for pid in /proc/[0-9]*; do
+    pid="${pid#/proc/}"
+    [[ "$pid" == "$$" || "$pid" == "$PPID" ]] && continue
+    { cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline")"; } 2>/dev/null || continue
+    [[ -z "$cmd" ]] && continue
+    cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+    if is_app_cmd "$cmd" "$cwd"; then
+      printf '%s\n' "$pid"
+    fi
+  done
+}
+
+descendants() {
+  local pid=$1 child
+  for child in $(ps -o pid= --ppid "$pid" 2>/dev/null); do
+    printf '%s\n' "$child"
+    descendants "$child"
+  done
+}
+
+port_listeners() {
+  local port=$1
+  lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true
+}
+
+mapfile -t roots < <(collect_pids | sort -u)
+
+if ((${#roots[@]} == 0)); then
+  listeners=()
+  for port in "${PORTS[@]}"; do
+    while read -r pid; do
+      [[ -n "$pid" ]] && listeners+=("$port:$pid")
+    done < <(port_listeners "$port")
+  done
+  if ((${#listeners[@]} == 0)); then
+    echo "Lightning Pose App is not running."
+    exit 0
+  fi
+  echo "No app process found, but these ports are in use:" >&2
+  printf '  %s\n' "${listeners[@]}" >&2
+  echo "Leaving them alone (not an LPA process)." >&2
+  exit 1
+fi
+
+declare -A root_set=()
+for pid in "${roots[@]}"; do
+  root_set[$pid]=1
+done
+
+# Kill from the top of each app tree so shells wrapped around honcho/uvicorn go too.
+declare -A kill_set=()
+for pid in "${roots[@]}"; do
+  parent="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+  if [[ -n "$parent" && -n "${root_set[$parent]:-}" ]]; then
+    continue
+  fi
+  kill_set[$pid]=1
+  while read -r child; do
+    [[ -n "$child" ]] && kill_set[$child]=1
+  done < <(descendants "$pid")
+done
+
+echo "Stopping Lightning Pose App:"
+for pid in "${!kill_set[@]}"; do
+  { cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline")"; } 2>/dev/null || cmd=""
+  printf '  %s  %s\n' "$pid" "${cmd:0:120}"
+done
+
+kill "${!kill_set[@]}" 2>/dev/null || true
+
+for _ in 1 2 3 4 5 6 7 8; do
+  alive=0
+  for pid in "${!kill_set[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      alive=1
+      break
+    fi
+  done
+  ((alive == 0)) && break
+  sleep 0.25
+done
+
+still=()
+for pid in "${!kill_set[@]}"; do
+  if kill -0 "$pid" 2>/dev/null; then
+    still+=("$pid")
+  fi
+done
+if ((${#still[@]} > 0)); then
+  echo "Sending SIGKILL to: ${still[*]}"
+  kill -9 "${still[@]}" 2>/dev/null || true
+fi
+
+echo "Stopped."

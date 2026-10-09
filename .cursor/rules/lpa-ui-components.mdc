@@ -1,0 +1,48 @@
+---
+description: DaisyUI 5, Tailwind CSS 4, and component structure guidelines for Lightning Pose App web UI.
+globs: lightning-pose-app/web_ui/**/*.{html,css,ts}
+alwaysApply: false
+---
+
+# LPA UI Components & Design System
+
+The app theme is DaisyUI 5 (`dim` theme) with Tailwind CSS 4, configured in `lightning-pose-app/web_ui/src/styles.css`.
+
+## Styling & Component Library Guidelines
+
+- **DaisyUI 5 First:** Always use DaisyUI component classes (`btn`, `input`, `select`, `range`, `badge`, `menu`, `tooltip`, `modal`, `card`, `alert`) before writing custom CSS.
+  - Button sizes/variants: `btn btn-primary`, `btn btn-outline`, `btn btn-sm`, `btn btn-ghost`.
+  - Badges & status: `badge badge-neutral`, `badge badge-success`, `badge badge-warning`, `badge badge-error`.
+  - Dialogs: Use DaisyUI `<dialog class="modal">` with `<div class="modal-box">` and `<form method="dialog">` or Angular dialog components.
+  - Tooltips: Use `tooltip` with `data-tip="..."` and positional modifiers (`tooltip-top`, `tooltip-bottom`).
+- **Tailwind CSS 4 for Layout:** Use Tailwind utility classes for flexbox, grid, sizing, spacing, and layout (`flex`, `grid`, `gap-2`, `p-4`, `w-full`, `justify-between`).
+- **Avoid Custom CSS Classes:** Avoid declaring one-off custom CSS classes in component `.css` files unless strictly necessary for canvas graphics, overlay coordinates, or tight pixel constraints.
+- **Known LPA Exceptions:**
+  - The Viewer frame and time fields stay custom (`.jump-field`) because DaisyUI `input` is too tall for that tight toolbar.
+  - The seek slider uses DaisyUI `range`.
+
+## Component Architecture & Placement
+
+- **Reusable Presentational Widgets (`web_ui/src/app/components/`):**
+  - Place a component here if it is reusable across multiple features or acts as a generic UI primitive (e.g. `path-bar`, `dropdown`, `dense-listbox`, `alert-dialog`).
+  - Must be **purely presentational** (dumb): state in via `input()`, actions out via `output()`, two-way binding via `model()`.
+  - **Never** inject domain backend services (`RpcService`, `ProjectInfoService`, `SessionService`) into reusable components.
+  - **Required Collocation:** Each reusable component must have its `*.stories.ts` (Storybook) beside it. Add `*.spec.ts` only when the component encodes behavior worth guarding (see `.cursor/rules/lpa-web-ui-tests.mdc`); trivial presentational wrappers may rely on Storybook + parent/integration specs.
+- **Feature-Specific UI:**
+  - Keep domain-specific UI in its respective feature directory (e.g. `web_ui/src/app/viewer/`, `labeler/`, `video-player/`, `project-settings/`).
+  - If a feature sub-widget is only used within that feature, keep it collocated within the feature folder rather than moving it to `components/`.
+- **Anti-Pattern (Over-Componentization):**
+  - Do NOT create an Angular component to wrap a simple DaisyUI element (e.g. do not create `<app-button>` to wrap `<button class="btn">`). Use native HTML with DaisyUI classes directly.
+
+## Storybook Development
+
+- **When to Add Stories:**
+  - Mandatory for every component under `web_ui/src/app/components/`.
+  - Encouraged for feature-level widgets when they can render in isolation with mock data.
+- **Running Storybook:**
+  - Storybook requires Node 26 on `PATH`:
+    ```bash
+    cd lightning-pose-app/web_ui && npm run storybook
+    ```
+    (Runs at http://localhost:6006).
+- **Storybook vs Unit Tests:** Storybook is for visual inspection, state exploration, and interactive styling. It does NOT replace unit tests (`*.spec.ts`).

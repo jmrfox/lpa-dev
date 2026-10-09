@@ -1,0 +1,23 @@
+---
+description: feature_plans and BUGS.md
+alwaysApply: true
+---
+
+# Feature plans
+
+`feature_plans/` is for **markdown files** that describe new features we are developing (Lightning Pose App, and occasionally Lightning Pose).
+
+- Put one plan per `.md` file with a descriptive name (e.g. `lpa-export-predictions.md`).
+- Do not put code, data, or other non-markdown artifacts there.
+- Read the relevant plan before implementing; update it if the design changes.
+- When the plan describes a behavior, name the **one** test that covers it (the regression that matters—not every spec in the folder). See `.cursor/rules/lpa-web-ui-tests.mdc` for lean UI test policy.
+- Do not log bugfixes as feature plans.
+
+# BUGS.md
+
+`BUGS.md` is a log for tracking bugs and bug fixes. 
+
+- Logs here should be more descriptive than in the changelogs. 
+- Logs should track current status of known bugs.
+- Name the test that covers a fix (spec or pytest file, and **what user-visible failure** it prevents). Prefer a single high-value test over listing every touched spec.
+- Do not log feature plans as bug fixes.

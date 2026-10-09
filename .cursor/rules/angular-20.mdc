@@ -1,0 +1,161 @@
+---
+description: Comprehensive best practices and modern coding standards for Angular v20+ development, focusing on TypeScript, standalone components, signals, OnPush change detection, and templates.
+globs: lightning-pose-app/web_ui/**/*.{html,css,ts}
+alwaysApply: false
+---
+
+# Angular Modern Best Practices (Angular v20+)
+
+This project adheres to modern Angular idioms, emphasizing maintainability, reactive signals, OnPush performance, accessibility, and modular design.
+
+## TypeScript Best Practices
+
+* **Strict Type Checking:** Always adhere to strict type checking. Catch errors at compile time.
+* **Prefer Type Inference:** Allow TypeScript to infer types when they are obvious from context.
+    * **Bad:**
+        ```typescript
+        let name: string = 'Angular';
+        ```
+    * **Good:**
+        ```typescript
+        let name = 'Angular';
+        ```
+* **Avoid `any`:** Do not use `any`. Use `unknown` when a type is uncertain and narrow it safely with type guards.
+
+## Core Component Standards
+
+* **Standalone Components:** All components, directives, and pipes are standalone.
+* **Implicit Standalone:** Do NOT add `standalone: true` inside `@Component`, `@Directive`, or `@Pipe` decorators. It is implicit and default in Angular v20+.
+* **OnPush Change Detection:** Always set `changeDetection: ChangeDetectionStrategy.OnPush` on every component decorator.
+* **Host Object over Decorators:** Do NOT use `@HostBinding` or `@HostListener`. Define host bindings and event handlers inside the `host` property of the `@Component` or `@Directive` decorator:
+    * **Bad:**
+        ```typescript
+        @HostBinding('class.active') isActive = true;
+        @HostListener('click') onClick() { ... }
+        ```
+    * **Good:**
+        ```typescript
+        @Component({
+          // ...
+          host: {
+            '[class.active]': 'isActive()',
+            '(click)': 'handleClick()',
+          },
+        })
+        ```
+* **Single Responsibility & Size:** Keep components small, focused, and single-purpose. Prefer inline templates (`template: ...`) for small components (< 30 lines) and external files for larger templates.
+
+## Signals & Reactivity
+
+* **Signal Inputs & Outputs:** Prefer `input()` and `output()` over `@Input()` and `@Output()`.
+    * **Bad:**
+        ```typescript
+        @Input() userId!: string;
+        @Output() userSelected = new EventEmitter<string>();
+        ```
+    * **Good:**
+        ```typescript
+        import { input, output } from '@angular/core';
+
+        userId = input.required<string>();
+        userSelected = output<string>();
+        ```
+* **Two-Way Binding with `model()`:** Use `model()` instead of paired `@Input()` and `@Output()`.
+    * **Bad:**
+        ```typescript
+        @Input() value = '';
+        @Output() valueChange = new EventEmitter<string>();
+        ```
+    * **Good:**
+        ```typescript
+        import { model } from '@angular/core';
+
+        value = model<string>('');
+        ```
+* **Signal Queries:** Use `viewChild()` and `viewChildren()` instead of `@ViewChild` / `@ViewChildren`.
+    * **Bad:**
+        ```typescript
+        @ViewChild('scrollContainer') container!: ElementRef<HTMLDivElement>;
+        ```
+    * **Good:**
+        ```typescript
+        import { viewChild, ElementRef } from '@angular/core';
+
+        container = viewChild<ElementRef<HTMLDivElement>>('scrollContainer');
+        ```
+* **Derived State with `computed()`:** Use `computed()` for any state derived from other signals. Keep computations pure, synchronous, and free of side effects.
+* **Resettable / Linked State with `linkedSignal()`:** Use `linkedSignal()` when local writable state must recompute or reset whenever a source signal or input changes:
+    * **Good:**
+        ```typescript
+        import { input, linkedSignal } from '@angular/core';
+
+        options = input<string[]>([]);
+        // Resets selectedOption to the first option whenever options() changes, but allows user selection
+        selectedOption = linkedSignal(() => this.options()[0] ?? null);
+        ```
+* **Signal Mutations:** Always use `set(...)` or `update(...)`. Never mutate objects in place.
+* **Side Effects:** Avoid `effect()` for state management or chaining state. Reserve `effect()` strictly for logging, analytics, or external imperative APIs (like Canvas or Audio).
+
+## Templates & Control Flow
+
+* **Native Block Control Flow:** Use `@if`, `@else if`, `@else`, `@switch`, `@case`, and `@for (...; track ...)`. Never use `*ngIf`, `*ngFor`, or `*ngSwitch`.
+    * **Bad:**
+        ```html
+        <div *ngIf="isVisible">Content</div>
+        <div *ngFor="let item of items">{{ item.name }}</div>
+        ```
+    * **Good:**
+        ```html
+        @if (isVisible()) {
+          <div>Content</div>
+        }
+        @for (item of items(); track item.id) {
+          <div>{{ item.name }}</div>
+        }
+        ```
+* **Template Local Variables (`@let`):** Use `@let` to declare scoped template variables to avoid re-evaluating signals or complex expressions:
+    * **Good:**
+        ```html
+        @let user = currentUser();
+        @if (user) {
+          <p>Welcome, {{ user.name }} ({{ user.role }})</p>
+        }
+        ```
+* **Native Class and Style Bindings:** Do NOT use `ngClass` or `ngStyle`. Use native bindings:
+    * **Bad:**
+        ```html
+        <div [ngClass]="{'active': isActive(), 'disabled': isDisabled()}"></div>
+        <div [ngStyle]="{'width': width() + 'px'}"></div>
+        ```
+    * **Good:**
+        ```html
+        <div [class.active]="isActive()" [class.disabled]="isDisabled()"></div>
+        <div [style.width.px]="width()"></div>
+        ```
+
+## Services & Dependency Injection
+
+* **`inject()` Function:** Prefer `inject()` over constructor injection for all dependencies:
+    * **Bad:**
+        ```typescript
+        constructor(private rpcService: RpcService) {}
+        ```
+    * **Good:**
+        ```typescript
+        import { inject } from '@angular/core';
+
+        private rpcService = inject(RpcService);
+        ```
+* **Single Responsibility & Scope:** Provide application singletons in root (`providedIn: 'root'`). Provide feature-scoped stores or view models at the feature component level.
+
+## Unit Testing Signal Components
+
+LPA policy: keep the UI suite **lean**—test regressions that can hurt users or data, not every widget. Scrutinize existing specs during review; remove or merge low-value tests. Details: `.cursor/rules/lpa-web-ui-tests.mdc` and Studio [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md).
+
+* **Setting Signal Inputs:** In tests, set signal inputs using `fixture.componentRef.setInput`:
+    ```typescript
+    fixture = TestBed.createComponent(MyComponent);
+    fixture.componentRef.setInput('userId', 'user-123');
+    fixture.detectChanges();
+    ```
+* **Mock Backend Services:** Always mock `ProjectInfoService`, `RpcService`, and `SessionService` in unit tests. Never allow specs to trigger actual HTTP or backend RPC calls.

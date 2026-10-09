@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Print git status for Lightning Pose and Lightning Pose App.
+# Usage: ./bin/gitstatus
+
+set -uo pipefail
+
+STUDIO_ROOT="$(cd ~ && pwd)"
+
+print_status() {
+  local label=$1
+  local dir=$2
+
+  printf '\n======== %s ========\n' "$label"
+  if [[ ! -d "$dir/.git" ]]; then
+    printf 'Not a git repo: %s\n' "$dir" >&2
+    return 1
+  fi
+  git -C "$dir" status
+}
+
+print_status "LP  lightning-pose" "${STUDIO_ROOT}/lightning-pose"
+print_status "LPA lightning-pose-app" "${STUDIO_ROOT}/lightning-pose-app"
+printf '\n'

@@ -1,0 +1,469 @@
+#!/usr/bin/env zsh
+# Lightning Studio helpers for Lightning Pose App.
+# Usage: lpa-dev run [--no-kill]          # start honcho (default if no command)
+#        lpa-dev storybook [--no-kill]     # Storybook on :6006
+#        lpa-dev packaged [--no-kill]      # build UI, then litpose run_app
+#        lpa-dev test [spec]               # Karma, ChromeHeadless
+#        lpa-dev status                    # node, version, ports
+#        lpa-dev gitstatus                 # git status for LP and LPA
+#        lpa-dev setup                     # Node 26, editable sync, UI deps; see ~/.zshrc
+#        lpa-dev kill|stop                 # stop dev and packaged app processes
+#        lpa-dev print-node26              # print the Node 26 bin directory
+#        lpa-dev sync-editable             # reinstall app_server if version drifted
+#        lpa-dev sync-ui                   # npm ci in web_ui when ng is missing or the lockfile is newer
+
+set -euo pipefail
+
+LPA_ROOT="${LPA_ROOT:-/teamspace/studios/this_studio/lightning-pose-app}"
+NVM_DIR="${NVM_DIR:-/teamspace/studios/this_studio/.nvm}"
+CHROME_WRAPPER="${CHROME_WRAPPER:-/teamspace/studios/this_studio/.cache/chrome/chrome-no-sandbox}"
+PORTS=(8080 4200 6006)
+
+usage() {
+  cat <<'EOF'
+Usage: lpa-dev <command>
+
+Basic commands:
+
+  setup                   Select Node 26 in this terminal and clear Studio node/npm/npx
+                          functions. Reinstalls the editable app only when pyproject.toml
+                          disagrees with the installed version. Installs web_ui
+                          dependencies when node_modules/.bin/ng is missing or older
+                          than package-lock.json. Does not start the app.
+                          Run this in each new terminal. Other terminals are unchanged.
+  run [--no-kill]         Start the dev app (honcho). UI at http://localhost:4200.
+                          Installs web_ui deps when ng is missing (same as sync-ui).
+                          Stops whatever is listening on ports 8080 and 4200 first.
+                          lpa-dev with no command does this too.
+  storybook [--no-kill]   Start Storybook at http://localhost:6006.
+                          Stops whatever is listening on port 6006 first.
+  status                  Print Node, the installed package version versus pyproject.toml,
+                          and what is listening on 8080, 4200, and 6006.
+  gitstatus               Print git status for lightning-pose and lightning-pose-app.
+  kill, stop              Stop an already running dev or packaged app (honcho, ng serve,
+                          Storybook, uvicorn litpose_app, litpose run_app).
+
+Advanced commands:
+
+  packaged [--no-kill]    Build the UI into ngdist, then start litpose run_app
+                          on 0.0.0.0:8080. Stops whatever is listening on 8080 first.
+                          This is the packaged server, not the honcho dev app.
+  test [spec]             Run the UI unit tests in ChromeHeadless (Node 26).
+                          With no spec, run the suite. With a spec path (relative
+                          to web_ui), pass it as --include.
+  sync-editable           Reinstall the editable app when the installed version differs
+                          from pyproject.toml. setup already does this.
+  sync-ui                 Install web_ui dependencies with npm ci when the local
+                          Angular CLI is missing or package-lock.json is newer.
+                          setup already does this.
+  print-node26            Print the Node 26 bin directory. Used by the setup shell function.
+EOF
+}
+
+node26_bin() {
+  # Newest installed Node 26 binary dir (same glob the Studio shell uses).
+  echo "$NVM_DIR"/versions/node/v26.*/bin(N[-1])
+}
+
+require_node26() {
+  NODE26_BIN="${NODE26_BIN:-$(node26_bin)}"
+  if [[ -z "$NODE26_BIN" || ! -x "$NODE26_BIN/node" ]]; then
+    echo "Node 26 not found under $NVM_DIR/versions/node/v26.*" >&2
+    exit 1
+  fi
+}
+
+apply_node26() {
+  require_node26
+  export PATH="$NODE26_BIN:$PATH"
+  unfunction node npm npx 2>/dev/null || true
+  unset -f node npm npx 2>/dev/null || true
+}
+
+free_port() {
+  local port=$1
+  local pids
+  pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    echo "Stopping process(es) on port $port: $pids"
+    kill $pids 2>/dev/null || true
+    sleep 0.4
+  fi
+}
+
+is_app_cmd() {
+  local cmd=$1
+  local cwd=$2
+  [[ "$cmd" == *lpa-dev* || "$cmd" == *lpa-stop* ]] && return 1
+  case "$cmd" in
+    *honcho*Procfile.dev*) return 0 ;;
+    *uvicorn*litpose_app*) return 0 ;;
+    *litpose\ run_app*|*litpose\ *run_app*) return 0 ;;
+    *storybook*) return 0 ;;
+  esac
+  if [[ "$cwd" == "$LPA_ROOT" || "$cwd" == "$LPA_ROOT"/* ]]; then
+    case "$cmd" in
+      *ng\ serve*|*ng\ run\ *storybook*) return 0 ;;
+      /bin/sh\ -c\ *uvicorn*|/bin/sh\ -c\ *ng\ serve*|/bin/sh\ -c\ *honcho*|/bin/sh\ -c\ *storybook*) return 0 ;;
+    esac
+  fi
+  return 1
+}
+
+collect_pids() {
+  local pid cmd cwd
+  for pid in /proc/[0-9]*; do
+    pid="${pid#/proc/}"
+    [[ "$pid" == "$$" || "$pid" == "$PPID" ]] && continue
+    { cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline")"; } 2>/dev/null || continue
+    [[ -z "$cmd" ]] && continue
+    cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+    if is_app_cmd "$cmd" "$cwd"; then
+      printf '%s\n' "$pid"
+    fi
+  done
+}
+
+descendants() {
+  local pid=$1 child
+  for child in $(ps -o pid= --ppid "$pid" 2>/dev/null); do
+    printf '%s\n' "$child"
+    descendants "$child"
+  done
+}
+
+port_listeners() {
+  local port=$1
+  lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true
+}
+
+cmd_kill() {
+  local pid parent child cmd
+  local -a roots listeners still
+  local -A root_set kill_set
+  roots=("${(@f)$(collect_pids | sort -u)}")
+  roots=("${(@)roots:#}")
+
+  if ((${#roots} == 0)); then
+    listeners=()
+    for port in "${PORTS[@]}"; do
+      for pid in ${(f)"$(port_listeners "$port")"}; do
+        [[ -n "$pid" ]] && listeners+=("$port:$pid")
+      done
+    done
+    if ((${#listeners} == 0)); then
+      echo "Lightning Pose App is not running."
+      exit 0
+    fi
+    echo "No app process found, but these ports are in use:" >&2
+    printf '  %s\n' "${listeners[@]}" >&2
+    echo "Leaving them alone (not an LPA process)." >&2
+    exit 1
+  fi
+
+  for pid in "${roots[@]}"; do
+    root_set[$pid]=1
+  done
+
+  # Kill from the top of each app tree so shells wrapped around honcho/uvicorn go too.
+  for pid in "${roots[@]}"; do
+    parent="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)"
+    if [[ -n "$parent" && -n "${root_set[$parent]:-}" ]]; then
+      continue
+    fi
+    kill_set[$pid]=1
+    for child in ${(f)"$(descendants "$pid")"}; do
+      [[ -n "$child" ]] && kill_set[$child]=1
+    done
+  done
+
+  echo "Stopping Lightning Pose App:"
+  for pid in "${(k)kill_set[@]}"; do
+    { cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline")"; } 2>/dev/null || cmd=""
+    printf '  %s  %s\n' "$pid" "${cmd:0:120}"
+  done
+
+  kill "${(k)kill_set[@]}" 2>/dev/null || true
+
+  local alive
+  for _ in 1 2 3 4 5 6 7 8; do
+    alive=0
+    for pid in "${(k)kill_set[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        alive=1
+        break
+      fi
+    done
+    ((alive == 0)) && break
+    sleep 0.25
+  done
+
+  still=()
+  for pid in "${(k)kill_set[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      still+=("$pid")
+    fi
+  done
+  if ((${#still} > 0)); then
+    echo "Sending SIGKILL to: ${still[*]}"
+    kill -9 "${still[@]}" 2>/dev/null || true
+  fi
+
+  echo "Stopped."
+}
+
+cmd_run() {
+  if [[ ! -d "$LPA_ROOT" ]]; then
+    echo "LPA repo not found: $LPA_ROOT" >&2
+    exit 1
+  fi
+  apply_node26
+  cmd_sync_ui
+  cd "$LPA_ROOT"
+  if [[ "${1:-}" != "--no-kill" ]]; then
+    free_port 8080
+    free_port 4200
+  fi
+  echo "node $(node -v)  (need v26.x)"
+  echo "Starting honcho — UI at http://localhost:4200"
+  exec honcho -f Procfile.dev start
+}
+
+cmd_storybook() {
+  local web_ui="$LPA_ROOT/web_ui"
+  if [[ ! -d "$web_ui" ]]; then
+    echo "web_ui not found: $web_ui" >&2
+    exit 1
+  fi
+  apply_node26
+  cd "$web_ui"
+  if [[ "${1:-}" != "--no-kill" ]]; then
+    free_port 6006
+  fi
+  echo "node $(node -v)  (need v26.x)"
+  echo "Starting Storybook — http://localhost:6006"
+  exec npm run storybook
+}
+
+require_repo() {
+  if [[ ! -d "$LPA_ROOT" ]]; then
+    echo "LPA repo not found: $LPA_ROOT" >&2
+    exit 1
+  fi
+}
+
+require_python() {
+  if ! command -v python >/dev/null 2>&1; then
+    echo "python not found on PATH (activate the cloudspace conda env first)." >&2
+    exit 1
+  fi
+}
+
+pyproject_version() {
+  local pyproject="$LPA_ROOT/app_server/pyproject.toml"
+  if [[ ! -f "$pyproject" ]]; then
+    echo "pyproject.toml not found: $pyproject" >&2
+    exit 1
+  fi
+  python - "$pyproject" <<'PY'
+import sys
+import tomllib
+from pathlib import Path
+
+print(tomllib.loads(Path(sys.argv[1]).read_text())["project"]["version"])
+PY
+}
+
+installed_version() {
+  python - <<'PY'
+import importlib.metadata
+
+try:
+    print(importlib.metadata.version("lightning-pose-app"))
+except importlib.metadata.PackageNotFoundError:
+    print("")
+PY
+}
+
+cmd_packaged() {
+  require_repo
+  apply_node26
+  cd "$LPA_ROOT"
+  if [[ "${1:-}" != "--no-kill" ]]; then
+    free_port 8080
+  fi
+  echo "node $(node -v)  (need v26.x)"
+  echo "Building UI into ngdist (packaged server, not honcho)…"
+  ./scripts/build/build_ui.sh
+  echo "Starting litpose run_app — http://0.0.0.0:8080"
+  exec litpose run_app --host 0.0.0.0
+}
+
+cmd_test() {
+  local spec="${1:-}"
+  local web_ui="$LPA_ROOT/web_ui"
+  require_repo
+  if [[ ! -d "$web_ui" ]]; then
+    echo "web_ui not found: $web_ui" >&2
+    exit 1
+  fi
+  if [[ -n "${2:-}" ]]; then
+    echo "Usage: lpa-dev test [spec]" >&2
+    exit 2
+  fi
+  if [[ ! -x "$CHROME_WRAPPER" ]]; then
+    echo "Chrome wrapper not found: $CHROME_WRAPPER" >&2
+    echo "Karma needs CHROME_BIN pointing at a Chrome binary that can run with --no-sandbox." >&2
+    exit 1
+  fi
+  apply_node26
+  cd "$web_ui"
+  export CHROME_BIN="$CHROME_WRAPPER"
+  echo "node $(node -v)  (need v26.x)"
+  if [[ -n "$spec" ]]; then
+    echo "Running $spec"
+    exec npx ng test --no-watch --browsers=ChromeHeadless --include="$spec"
+  fi
+  echo "Running the UI unit suite"
+  exec npx ng test --no-watch --browsers=ChromeHeadless
+}
+
+cmd_status() {
+  local port pids desired installed node_ver
+  require_python
+  apply_node26 2>/dev/null || true
+  if command -v node >/dev/null 2>&1; then
+    node_ver="$(node -v 2>/dev/null || true)"
+  else
+    node_ver="not on PATH"
+  fi
+  echo "node: $node_ver  (need v26.x)"
+  desired="$(pyproject_version)"
+  installed="$(installed_version)"
+  if [[ -z "$installed" ]]; then
+    echo "lightning-pose-app: not installed (pyproject.toml $desired)"
+  elif [[ "$installed" == "$desired" ]]; then
+    echo "lightning-pose-app: $installed (matches pyproject.toml)"
+  else
+    echo "lightning-pose-app: installed=$installed  pyproject.toml=$desired"
+  fi
+  for port in "${PORTS[@]}"; do
+    pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+    if [[ -z "$pids" ]]; then
+      echo "port $port: free"
+    else
+      echo "port $port: $pids"
+    fi
+  done
+}
+
+# Reinstall the editable package only when installed metadata disagrees with
+# app_server/pyproject.toml (version bumps, new deps). Source edits need no reinstall.
+cmd_sync_editable() {
+  local app_server="$LPA_ROOT/app_server"
+  local desired installed
+
+  require_python
+  if ! command -v pip >/dev/null 2>&1; then
+    echo "pip not found on PATH." >&2
+    exit 1
+  fi
+
+  desired="$(pyproject_version)"
+  installed="$(installed_version)"
+
+  if [[ -n "$installed" && "$installed" == "$desired" ]]; then
+    echo "lightning-pose-app $installed (editable install matches pyproject.toml)"
+    return 0
+  fi
+
+  if [[ -z "$installed" ]]; then
+    echo "lightning-pose-app is not installed — installing editable $desired …"
+  else
+    echo "lightning-pose-app installed=$installed desired=$desired — reinstalling editable …"
+  fi
+  (cd "$app_server" && pip install -e ".[dev]")
+  installed="$(
+    python - <<'PY'
+import importlib.metadata
+
+print(importlib.metadata.version("lightning-pose-app"))
+PY
+  )"
+  echo "lightning-pose-app $installed"
+}
+
+# Install web_ui/node_modules when honcho would not find the local Angular CLI.
+cmd_sync_ui() {
+  local web_ui="$LPA_ROOT/web_ui"
+  local ng="$web_ui/node_modules/.bin/ng"
+
+  require_repo
+  if [[ ! -f "$web_ui/package-lock.json" ]]; then
+    echo "package-lock.json not found: $web_ui/package-lock.json" >&2
+    exit 1
+  fi
+  if [[ -x "$ng" \
+    && ! "$web_ui/package-lock.json" -nt "$ng" \
+    && ! "$web_ui/package.json" -nt "$ng" ]]; then
+    echo "web_ui dependencies present (node_modules/.bin/ng)"
+    return 0
+  fi
+
+  apply_node26
+  echo "node $(node -v)  (need v26.x)"
+  echo "Installing web_ui dependencies (npm ci)…"
+  (cd "$web_ui" && npm ci)
+  if [[ ! -x "$ng" ]]; then
+    echo "npm ci finished but $ng is still missing." >&2
+    exit 1
+  fi
+  echo "web_ui dependencies installed (node_modules/.bin/ng)"
+}
+
+cmd_gitstatus() {
+  local studio="${LPA_ROOT:h}"
+  print_repo_status "LP  lightning-pose" "$studio/lightning-pose" || true
+  print_repo_status "LPA lightning-pose-app" "$studio/lightning-pose-app" || true
+  printf '\n'
+}
+
+print_repo_status() {
+  local label=$1
+  local dir=$2
+  printf '\n======== %s ========\n' "$label"
+  if [[ ! -d "$dir/.git" ]]; then
+    printf 'Not a git repo: %s\n' "$dir" >&2
+    return 1
+  fi
+  git -C "$dir" status
+}
+
+cmd="${1:-run}"
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
+case "$cmd" in
+  run) cmd_run "$@" ;;
+  storybook) cmd_storybook "$@" ;;
+  packaged) cmd_packaged "$@" ;;
+  test) cmd_test "$@" ;;
+  status) cmd_status "$@" ;;
+  gitstatus) cmd_gitstatus ;;
+  kill|stop) cmd_kill ;;
+  print-node26) node26_bin ;;
+  sync-editable) cmd_sync_editable ;;
+  sync-ui) cmd_sync_ui ;;
+  setup)
+    echo "lpa-dev setup changes the current terminal, so it has to run as a shell function." >&2
+    echo "Open a new terminal, or source your shell startup file (~/.zshrc or ~/.bashrc)." >&2
+    echo "Then: lpa-dev setup" >&2
+    exit 1
+    ;;
+  -h|--help|help) usage ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

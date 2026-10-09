@@ -1,0 +1,60 @@
+---
+description: Lean, risk-focused Web UI unit tests for Lightning Pose App
+globs: lightning-pose-app/web_ui/**/*.ts
+alwaysApply: false
+---
+
+# LPA Web UI tests (lean suite)
+
+Track phased review in Studio: [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md) (code **and** `*.spec.ts` per phase).
+
+## Philosophy
+
+- **Test what can hurt users or data**, not every line of UI. A lean suite is easier to maintain and faster to run.
+- **One spec per behavior**, not per component method. If two `it()` blocks assert the same user-visible rule, merge or delete one.
+- **Prefer pure helpers** (`*.ts` next to features) for tricky logic (validation, coordinate math, keyboard maps). One focused spec file beats many shallow component tests.
+- **Storybook is not a test.** Stories help eyes; specs guard regressions that matter.
+- **Removing tests is allowed** when reviewing shows they only duplicate implementation detail, assert framework behavior, or break whenever copy/CSS changes without catching real bugs.
+
+## Write a spec when failure would likely mean…
+
+| Risk | Examples |
+|------|-----------|
+| **Data loss or corruption** | Saving labels, project config patches, wrong RPC payload shape |
+| **Silent wrong science** | Viewer frame/time jumps, likelihood threshold hiding points, multiview mixing models |
+| **Blocked workflow** | Cannot save, cannot open label file, dialog never closes after success |
+| **Security / paths** | Path traversal in user-entered dirs, registering wrong project root |
+| **Non-obvious rules** | Skeleton validity catalog, undirected pair deduping, bones not crossing views/models |
+
+## Usually skip (or keep minimal)
+
+- “Component creates” / `should create` with no behavior assertion.
+- Testing that a child component was called when the parent only forwards an `@Input` (test the child or the integration once).
+- Exact CSS class lists or pixel-perfect layout unless the class **is** the behavior (e.g. error state `text-error`).
+- Duplicating the same rule in a parent spec and a child spec—**one owner** per rule (see feature plans).
+- Exhaustive permutations of valid form input when one happy path + one rejection path suffices.
+
+## Per-spec scrutiny (during code review)
+
+For each `it()` / `describe()` in the phase’s `*.spec.ts` files, ask:
+
+1. **If this failed in CI, would we fix a real bug or just update the test?** If mostly the latter, remove or narrow the assertion.
+2. **Is the behavior already covered elsewhere?** Drop the duplicate; note the surviving spec in CHANGELOG/BUGS/feature plan.
+3. **Does it mock at the right layer?** Mock `RpcService` / `ProjectInfoService` / `SessionService`; do not integration-test the backend from Karma.
+4. **Does it assert user-observable outcomes?** Clicks, keyboard, `aria-label`, emitted outputs, DOM text—not private methods.
+
+Record decisions in the review tracker: **keep** · **trim** (fewer cases) · **remove** · **add** (gap) · **merge** (into helper spec).
+
+## When you change behavior
+
+- Update or add **one** spec that names the regression you fear—not a spec per file touched.
+- In [CHANGELOG.md](../../lightning-pose-app/CHANGELOG.md), [BUGS.md](../../BUGS.md), or `feature_plans/*.md`, cite that spec and **what failure mode** it guards—not “has unit tests”.
+
+## Commands
+
+```bash
+cd lightning-pose-app/web_ui && npx ng lint
+npx ng test --no-watch --browsers=ChromeHeadless --include=<path/to/spec.ts>
+```
+
+Run only specs for code you changed unless the change is shared (`components/`, routing, global styles).

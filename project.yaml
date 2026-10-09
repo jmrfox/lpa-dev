@@ -1,0 +1,12 @@
+keypoint_names:
+- paw1LH
+- paw2LF
+- paw3RF
+- paw4RH
+- tailBase
+- tailMid
+- nose
+schema_version: 1
+view_names:
+- top
+- bot

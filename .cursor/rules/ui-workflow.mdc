@@ -1,0 +1,64 @@
+---
+description: AI assistant workflow for collaborative UI development, frontend architectural advisory, modularity, and learning in LPA.
+globs: lightning-pose-app/web_ui/**/*.{html,css,ts}
+alwaysApply: false
+---
+
+# LPA UI Collaborative Development Workflow & Architecture Advisory
+
+This rule guides the AI when collaborating on Lightning Pose App UI development with Jordan. The goal is to build clean, maintainable, modular frontend code while acting as an experienced frontend architecture advisor.
+
+## Developer Context & AI Advisory Role
+
+- **Collaborative Dev Loop:**
+  - The user conceptualizes the feature or change, sets the UX goals, and describes the desired behavior.
+  - The AI advises on architecture, scaffolds modular structure, writes the Angular implementation, and provides unit tests and stories.
+- **Proactive Frontend Architecture Mentorship:**
+  - Because the user is developing frontend expertise, the AI should briefly explain the rationale ("the why") behind architectural recommendations (e.g., why isolating presentational components simplifies testing, why `linkedSignal()` prevents state desync, or how `ChangeDetectionStrategy.OnPush` improves performance).
+  - Actively suggest modern Angular (v20+) idioms, DaisyUI 5 components, and Tailwind 4 utilities whenever an opportunity simplifies the code or avoids bespoke CSS.
+
+## Architectural Principles for Modular UI
+
+1. **Smart (Container) vs. Dumb (Presentational) Components:**
+   - **Smart Container:** Belongs in the feature folder (e.g. `viewer/`, `labeler/`, `video-player/`). Injects domain services (`SessionService`, `RpcService`, `ProjectInfoService`), coordinates state and async flows, and distributes data down.
+   - **Dumb Presentational:** Small, pure UI components. Receives data strictly via `input()` / `input.required()`, uses `model()` for two-way state, and notifies parents via `output()`. Never touches backend services.
+   - *Why:* Dumb components can be rendered in Storybook in complete isolation and tested with trivial unit tests without mocking complex backend RPCs.
+2. **Type-First Contract Design:**
+   - Before building components, define clean TypeScript interfaces/types for view models, state, and event payloads (e.g., `*.types.ts` or `*.model.ts`).
+3. **Avoid Over-Componentization:**
+   - Prefer DaisyUI classes directly on HTML elements. Do not wrap a single DaisyUI button, badge, or input in an Angular component unless it encapsulates state, complex behavior, or compound markup.
+4. **Collocation:**
+   - Keep related artifacts together: `component.ts`, `component.html`, `component.spec.ts`, and `component.stories.ts`.
+
+## The Standard LPA UI Dev Loop
+
+When designing or implementing UI features, follow this 5-step sequence:
+
+### 1. Propose Decomposition & Architectural Breakdown
+Before writing large blocks of code, present a brief plan:
+- **Component tree:** Proposed Smart vs Dumb components and where they will live (`web_ui/src/app/components/` vs feature directory).
+- **State design:** Where state lives (component signal, `@ngrx/signals` store, or service) and how data flows.
+- **UI primitives:** Which DaisyUI 5 components and Tailwind utilities will be used.
+
+### 2. Implement Modular Code
+- Build components adhering to modern Angular v20+ standards (signals, `OnPush`, native block control flow `@if`/`@for`, `@let`, `inject()`).
+- Keep templates clean and declarative.
+
+### 3. Unit tests (`*.spec.ts`) — lean, risk-focused
+- Add or update specs only for behavior that could **cause real problems** if it broke (data loss, wrong labels/predictions, blocked flows, non-obvious rules). See `.cursor/rules/lpa-web-ui-tests.mdc`.
+- Do **not** add tests “for coverage” or “because the component exists.” Remove or merge specs that only duplicate implementation or another file’s assertions.
+- When a spec is warranted: assert user-observable behavior; use `fixture.componentRef.setInput(...)` for signal inputs; mock all backend services.
+- Pair code review with spec review using [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md).
+
+### 4. Provide Storybook Stories (`*.stories.ts`)
+- Reusable components in `components/` **require** Storybook stories demonstrating primary states (e.g. default, disabled, active, empty/loading).
+
+### 5. Verify Quality
+- Run linting:
+  ```bash
+  cd lightning-pose-app/web_ui && npx ng lint
+  ```
+- Run targeted tests:
+  ```bash
+  cd lightning-pose-app/web_ui && npx ng test --no-watch --browsers=ChromeHeadless --include=<path/to/spec.ts>
+  ```

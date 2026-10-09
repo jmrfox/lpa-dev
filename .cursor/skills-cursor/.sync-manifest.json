@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "skills": {
+    "autopilot": {
+      "lastSyncedAt": 1791583339593
+    },
+    "canvas": {
+      "lastSyncedAt": 1791583339593
+    },
+    "automate": {
+      "lastSyncedAt": 1791583339593
+    },
+    "create-hook": {
+      "lastSyncedAt": 1791583339593
+    },
+    "create-rule": {
+      "lastSyncedAt": 1791583339593
+    },
+    "create-skill": {
+      "lastSyncedAt": 1791583339593
+    },
+    "create-subagent": {
+      "lastSyncedAt": 1791583339593
+    },
+    "sdk": {
+      "lastSyncedAt": 1791583339593
+    },
+    "goal": {
+      "lastSyncedAt": 1791583339593
+    },
+    "loop": {
+      "lastSyncedAt": 1791583339593
+    },
+    "migrate-to-skills": {
+      "lastSyncedAt": 1791583339593
+    },
+    "new-repo": {
+      "lastSyncedAt": 1791583339593
+    },
+    "origin": {
+      "lastSyncedAt": 1791583339593
+    },
+    "share": {
+      "lastSyncedAt": 1791583339593
+    },
+    "onboard": {
+      "lastSyncedAt": 1791583339593
+    },
+    "review": {
+      "lastSyncedAt": 1791583339593
+    },
+    "review-bugbot": {
+      "lastSyncedAt": 1791583339593
+    },
+    "review-security": {
+      "lastSyncedAt": 1791583339593
+    },
+    "rename-chat": {
+      "lastSyncedAt": 1791583339593
+    },
+    "shell": {
+      "lastSyncedAt": 1791583339593
+    },
+    "split-to-prs": {
+      "lastSyncedAt": 1791583339593
+    },
+    "statusline": {
+      "lastSyncedAt": 1791583339593
+    },
+    "update-cli-config": {
+      "lastSyncedAt": 1791583339593
+    },
+    "update-cursor-settings": {
+      "lastSyncedAt": 1791583339593
+    },
+    "visualize": {
+      "lastSyncedAt": 1791583339593
+    }
+  },
+  "lastInventoryAt": 1791569492340
+}

@@ -1,0 +1,42 @@
+---
+description: Avoid pointless indirection; prefer direct calls and local comments
+alwaysApply: true
+---
+
+# No useless wrappers
+
+Do **not** add functions, methods, or thin helpers whose only job is to call something else with the same arguments and return the result unchanged.
+
+**Bad (Python, TypeScript, etc.):**
+
+```python
+def get_attribute_from_object(obj):
+    return obj.get_attribute()
+```
+
+```typescript
+function getProjectKey(ctx: ProjectContext): string {
+  return ctx.key;
+}
+```
+
+Call `obj.get_attribute()` or `ctx.key` at the use site. Extra names force readers to jump into another definition to learn nothing new.
+
+## When a helper *is* OK
+
+- **Real reuse:** the same non-trivial logic appears in multiple places (DRY with substance).
+- **Meaningful boundary:** hides a stable contract (e.g. `skeletonProblems()` encodes validation rules), not a one-liner property access.
+- **Test seam:** rare; prefer injecting the real dependency in tests instead of wrapping for mockability alone.
+
+## Hard-to-read lines
+
+If a single expression is genuinely obscure, add a **short comment on that line** (what/why), not a wrapper function whose body is one line.
+
+```typescript
+// Undirected pair key: sort so [a,b] and [b,a] collide.
+const key = [left, right].sort().join('\0');
+```
+
+## Review habit
+
+During code review (including [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md)), flag new one-line passthrough helpers for removal unless they meet the exceptions above.

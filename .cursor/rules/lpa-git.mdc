@@ -1,0 +1,26 @@
+---
+description: LPA git — PRs for features; docs on main are user-pushed
+alwaysApply: true
+---
+
+# Lightning Pose App git (this Studio)
+
+## Features and bugfixes
+
+- New short-lived branch from `origin/main`, then a PR into `main`. One branch per feature or bugfix bundle. Combining is fine when the changes touch the same part of the code.
+- Do not open PRs from `jmrfox/dev`.
+- Do not `git push` to `main` for code, scripts, or config.
+
+## Simple docs-only edits
+
+Examples: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `DEV.md`, `AGENTS.md` (wording only), `feature_plans/*.md`.
+
+- Edit on **`main`**. No feature branch or PR.
+- **Do not `git commit` or `git push`.** Leave the working tree for review; Jordan commits and pushes.
+
+If a “docs” change also touches scripts, CI, or app code, treat it as a feature branch + PR.
+
+## Commits in general
+
+- Commit, push, open, merge, or close PRs **only when asked**.
+- Do not run `./scripts/publish_github_release.sh` unless asked.

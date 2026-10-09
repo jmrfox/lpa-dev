@@ -1,0 +1,46 @@
+# Separate git repos (track code in their own remotes)
+/lightning-pose/
+/lightning-pose-app/
+
+# Local datasets and LP projects (not for git)
+/data/
+/LPProjects/
+
+# Platform symlinks and non-portable home paths
+.condarc
+.cursor-server
+.docker
+.hushlogin
+.jupyter
+.local
+.nvm
+.oh-my-zsh
+.profile
+.ssh
+.sudo_as_admin_successful
+.vscode-server
+.windsurf-server
+
+# Caches, package stores, runtime artifacts
+.cache/
+.npm/
+.config/
+.lightning-pose/
+
+# IDE machine state
+.idea/
+
+# Secrets and history
+.bash_history
+.zsh_history
+.lesshst
+.gitconfig
+
+# Shell completion dumps (regenerated)
+.zcompdump*
+
+# Cursor session output (see .cursor/.gitignore)
+.cursor/projects/*/agent-transcripts/
+.cursor/projects/*/agent-tools/
+.cursor/projects/*/terminals/
+
