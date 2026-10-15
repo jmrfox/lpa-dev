@@ -2,6 +2,78 @@
 
 This is a log for tracking bugs.
 
+## Saving a labeled frame fails when the unlabeled list is blank (fixed)
+
+**Status:** Fixed on `feature/ui-tweaks`.
+
+**Symptoms:** In the Labeler, moving a keypoint on a labeled frame and saving shows `Error: [object Object]`. The keypoint file may already have been written.
+
+**Cause:** `CollectedData.unlabeled.jsonl` can be a single newline (an empty labeling queue). Removing the frame from that file parsed every line as JSON, including the blank line, so the save returned 500. The Labeler then threw `new Error` on the HTTP error object, which prints as `[object Object]`.
+
+**Fix:** Blank lines are skipped, the same way frames are added to the queue. A failed save reports the HTTP error message.
+
+**Tests:** `test_save_mvframe_skips_blank_unlabeled_sidecar_lines` (a newline-only sidecar does not fail the save, and a blank line plus a queued frame still removes that frame).
+
+## Folder list in the path picker cannot scroll (fixed)
+
+**Status:** Fixed on `fix/minor-bugfixes-tweaks`.
+
+**Symptoms:** Add Existing Project (and any path field) listed subfolders in a dropdown that grew past the bottom of the screen, so later folders could not be chosen.
+
+**Cause:** The path dropdown had no maximum height, and the popover did not scroll.
+
+**Fix:** The subdirectory list is capped and scrolls.
+
+**Tests:** None. This is layout only.
+
+## Exactly one camera view is accepted as multiview (fixed)
+
+**Status:** Fixed on `fix/minor-bugfixes-tweaks`.
+
+**Symptoms:** A project could be saved with a single camera view name. Multiview behavior then did not match a real multiview project or a single-view project.
+
+**Cause:** Blank views already meant single-view, but one name was written to `view_names` with no check.
+
+**Fix:** Create and update reject exactly one view. The Multiview step shows an error and disables Save while that list has one name, so a project that already has one view must clear it or add a second view before Settings will save. Opening the project is unchanged, and an update that does not send views is still accepted.
+
+**Tests:** `test_create_and_update_reject_exactly_one_camera_view` (create and update reject one name; zero and two are saved). `project-settings.component.spec.ts` (one camera view disables Save and two names allow it).
+
+## Missing ffmpeg fails only when a video is opened (fixed)
+
+**Status:** Fixed on `fix/minor-bugfixes-tweaks`.
+
+**Symptoms:** With ffmpeg absent, an existing project still loaded and videos failed later in the Viewer.
+
+**Cause:** ffmpeg was checked only when a transcode or ffprobe ran.
+
+**Fix:** Startup context reports whether both ffmpeg and ffprobe are on PATH. The top bar keeps a warning when either is missing.
+
+**Tests:** `test_get_global_context_reports_ffmpeg_and_windows`.
+
+## Native Windows fails at video upload with ffmpeg code 8 (fixed)
+
+**Status:** Fixed on `fix/minor-bugfixes-tweaks`.
+
+**Symptoms:** Video upload on native Windows failed with ffmpeg error code 8 because a Windows path was passed through. The app gave no advance warning.
+
+**Cause:** The app started the same way on native Windows and on WSL.
+
+**Fix:** On native Windows (`win32`; WSL stays Linux) the top bar says labeling works and training, inference, and video processing should run in WSL. The app still starts.
+
+**Tests:** `test_get_global_context_reports_ffmpeg_and_windows`.
+
+## Renamed keypoints look saved but are not written (fixed)
+
+**Status:** Fixed on `fix/minor-bugfixes-tweaks`.
+
+**Symptoms:** After keypoint names changed in Project settings, the Labeler showed the new names. Save and next did not say that the CSV still had the old columns, so training later failed on a shape mismatch.
+
+**Cause:** The label save kept only CSV columns whose names were in the save request. A renamed keypoint matched nothing and the file was left unchanged.
+
+**Fix:** The Keypoints tab warns when the list differs from the saved project and says existing label files must be recreated. The settings save is still allowed. A label save that names a keypoint missing from that CSV returns an error and does not write the file.
+
+**Tests:** `test_save_mvframe_rejects_keypoint_missing_from_columns` (a keypoint that is not a CSV column is rejected and the file bytes stay the same).
+
 ## File Manager Validate All reorders the list (fixed)
 
 **Status:** Fixed in 2.4.2.2.

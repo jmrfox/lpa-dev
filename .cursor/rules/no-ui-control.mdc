@@ -1,0 +1,12 @@
+---
+description: Do not drive the running app unless the user asks
+alwaysApply: true
+---
+
+# Do not take control of the UI
+
+Do not drive the running app unless the user asks you to look at it, click through it, or check it.
+
+That includes the browser: locking a tab, navigating, clicking, typing, scrolling, or taking screenshots of the app.
+
+Editing code, running tests, and reading the dev-server log are fine. The user checks the screen.
