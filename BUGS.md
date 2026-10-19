@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Label files other than CollectedData.csv cannot be used (fixed)
+
+**Status:** Fixed on `feature/usable-label-csvs`.
+
+**Symptoms:** A label CSV with any name other than `CollectedData.csv` or `CollectedData_test.csv` (or `CollectedData_<view>.csv` / `CollectedData_<view>_test.csv` on a project with views) was marked Invalid in File Manager and did not appear in the Labeler or Viewer. `CollectedData copy.csv` is one case. Add Label File and Rename refused those names.
+
+**Cause:** Validation treated the CollectedData filename as a hard issue. `findLabelFiles` omits every file that has an issue, so a readable table with another name was hidden from the rest of the app.
+
+**Fix:** Any `.csv` directly in the data directory can be a label file. The file is Invalid, and hidden, only when it cannot be read as a label table. A missing frame, an unusual index path, an incomplete bodypart, or a keypoint mismatch is a warning and the file stays usable. `Config.LABEL_CSV_SCOPE` can include subfolders; the default is the data-directory root.
+
+**Tests:** `test_validate_label_csv_hides_only_unusable_files` (a readable root CSV with a missing image stays in the label picker, a file that is not a label table does not, and a CSV in a subdirectory is not listed).
+
 ## Saving a labeled frame fails when the unlabeled list is blank (fixed)
 
 **Status:** Fixed on `feature/ui-tweaks`.
