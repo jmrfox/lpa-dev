@@ -150,7 +150,7 @@ This project adheres to modern Angular idioms, emphasizing maintainability, reac
 
 ## Unit Testing Signal Components
 
-LPA policy: keep the UI suite **lean**—test regressions that can hurt users or data, not every widget. Scrutinize existing specs during review; remove or merge low-value tests. Details: `.cursor/rules/lpa-web-ui-tests.mdc` and Studio [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md).
+LPA policy: keep the UI suite **lean**—test regressions that can hurt users or data, not every widget. Scrutinize existing specs during review; remove or merge low-value tests. Details: `.cursor/rules/lpa-web-ui-tests.mdc` and [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md).
 
 * **Setting Signal Inputs:** In tests, set signal inputs using `fixture.componentRef.setInput`:
     ```typescript
