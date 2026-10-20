@@ -6,7 +6,7 @@
 #        lpa-dev test [spec]               # Karma, ChromeHeadless
 #        lpa-dev status                    # node, version, ports
 #        lpa-dev gitstatus                 # git status for LP and LPA
-#        lpa-dev setup                     # Node 26, editable sync, UI deps; see ~/.zshrc
+#        lpa-dev setup                     # Node 26, editable sync, UI deps; see shell/lpa-dev.zsh
 #        lpa-dev kill|stop                 # stop dev and packaged app processes
 #        lpa-dev print-node26              # print the Node 26 bin directory
 #        lpa-dev sync-editable             # reinstall app_server if version drifted
@@ -14,9 +14,45 @@
 
 set -euo pipefail
 
-LPA_ROOT="${LPA_ROOT:-/teamspace/studios/this_studio/lightning-pose-app}"
-NVM_DIR="${NVM_DIR:-/teamspace/studios/this_studio/.nvm}"
-CHROME_WRAPPER="${CHROME_WRAPPER:-/teamspace/studios/this_studio/.cache/chrome/chrome-no-sandbox}"
+if [[ -z "${LPA_DEV_ROOT:-}" ]]; then
+  LPA_DEV_ROOT="$(cd "${0:A:h}/.." && pwd)"
+fi
+
+LPA_ROOT="${LPA_ROOT:-$LPA_DEV_ROOT/lightning-pose-app}"
+
+if [[ -z "${NVM_DIR:-}" ]]; then
+  if [[ -d "$LPA_DEV_ROOT/.nvm" ]]; then
+    NVM_DIR="$LPA_DEV_ROOT/.nvm"
+  elif [[ -d "${HOME}/.nvm" ]]; then
+    NVM_DIR="${HOME}/.nvm"
+  elif [[ -d /teamspace/studios/this_studio/.nvm ]]; then
+    NVM_DIR=/teamspace/studios/this_studio/.nvm
+  else
+    NVM_DIR="${HOME}/.nvm"
+  fi
+fi
+
+default_chrome_wrapper() {
+  if [[ -n "${CHROME_BIN:-}" && -x "${CHROME_BIN}" ]]; then
+    print -r -- "$CHROME_BIN"
+    return 0
+  fi
+  local c
+  for c in \
+    /teamspace/studios/this_studio/.cache/chrome/chrome-no-sandbox \
+    /usr/bin/chromium-browser \
+    /usr/bin/chromium \
+    /usr/bin/google-chrome \
+    /snap/bin/chromium; do
+    if [[ -x "$c" ]]; then
+      print -r -- "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+CHROME_WRAPPER="${CHROME_WRAPPER:-$(default_chrome_wrapper 2>/dev/null || true)}"
 PORTS=(8080 4200 6006)
 
 usage() {
@@ -254,7 +290,7 @@ require_repo() {
 
 require_python() {
   if ! command -v python >/dev/null 2>&1; then
-    echo "python not found on PATH (activate the cloudspace conda env first)." >&2
+    echo "python not found on PATH (activate conda: poseapp on WSL, cloudspace on Studio)." >&2
     exit 1
   fi
 }
@@ -311,14 +347,14 @@ cmd_test() {
     echo "Usage: lpa-dev test [spec]" >&2
     exit 2
   fi
-  if [[ ! -x "$CHROME_WRAPPER" ]]; then
-    echo "Chrome wrapper not found: $CHROME_WRAPPER" >&2
-    echo "Karma needs CHROME_BIN pointing at a Chrome binary that can run with --no-sandbox." >&2
+  local chrome="${CHROME_WRAPPER:-${CHROME_BIN:-}}"
+  if [[ -z "$chrome" || ! -x "$chrome" ]]; then
+    echo "Chrome/Chromium not found for Karma (set CHROME_BIN or CHROME_WRAPPER)." >&2
     exit 1
   fi
   apply_node26
   cd "$web_ui"
-  export CHROME_BIN="$CHROME_WRAPPER"
+  export CHROME_BIN="$chrome"
   echo "node $(node -v)  (need v26.x)"
   if [[ -n "$spec" ]]; then
     echo "Running $spec"

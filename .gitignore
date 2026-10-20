@@ -6,6 +6,9 @@
 /data/
 /LPProjects/
 
+# Studio-only config (often a broken symlink on WSL)
+.lightning_studio/.studiorc
+
 # Platform symlinks and non-portable home paths
 .condarc
 .cursor-server

@@ -4,7 +4,8 @@
 
 set -uo pipefail
 
-STUDIO_ROOT="$(cd ~ && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LPA_DEV_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 print_status() {
   local label=$1
@@ -18,6 +19,6 @@ print_status() {
   git -C "$dir" status
 }
 
-print_status "LP  lightning-pose" "${STUDIO_ROOT}/lightning-pose"
-print_status "LPA lightning-pose-app" "${STUDIO_ROOT}/lightning-pose-app"
+print_status "LP  lightning-pose" "${LPA_DEV_ROOT}/lightning-pose"
+print_status "LPA lightning-pose-app" "${LPA_DEV_ROOT}/lightning-pose-app"
 printf '\n'

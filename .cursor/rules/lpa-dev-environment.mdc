@@ -1,0 +1,33 @@
+---
+description: lpa-dev environment (Lightning Studio vs WSL)
+alwaysApply: true
+---
+
+# lpa-dev environment
+
+Workspace root is the **lpa-dev** repo (`LPA_DEV_ROOT`); **lightning-pose** and **lightning-pose-app** are sibling clones inside it. Helpers: `bin/lpa-dev`, `shell/lpa-dev.zsh` (zsh `setup` function).
+
+Registered projects: **`~/.lightning-pose/projects.toml`** on every machine (paths inside the file are machine-specific). Optional smoke data under **`$LPA_DEV_ROOT/LPProjects/`** (gitignored; do not commit)—e.g. `LPProjects/mirror-mouse-fused-tiny` and `LPProjects/mirror-mouse-fused` (single-view fused).
+
+## Which machine am I on?
+
+Follow **one** section below—never mix conda envs or paths.
+
+- **Lightning Studio** if the workspace root is `/teamspace/studios/this_studio` (often `$HOME` = lpa-dev).
+- **WSL / local Linux** otherwise (e.g. `/home/jordan/repos/lpa-dev`).
+
+## Lightning Studio
+
+- Conda: **`cloudspace` only**. Do not `conda create -n poseapp`.
+- Node 26 on PATH for honcho (Studio wraps `node` onto 22). Use `lpa-dev setup` or prepend `$LPA_DEV_ROOT/.nvm/versions/node/v26.*/bin` and `unset -f node npm npx` if `ng` is missing.
+
+## WSL / local Linux
+
+- Conda: **`poseapp`** (`conda activate poseapp`). One-time: `bash scripts/wsl-one-time-setup.sh`.
+- Node 26 via nvm (`~/.nvm` typical). Source `shell/lpa-dev.zsh` in `~/.zshrc`; run **`lpa-dev setup`** per new terminal.
+- UI tests: set `CHROME_BIN` to Chromium/Chrome if `lpa-dev test` cannot find a browser.
+
+## Both
+
+- Daily UI: `lpa-dev run` → **http://localhost:4200** (Studio: Cursor port forward). `litpose run_app` needs `--host 0.0.0.0` and `./scripts/build/build_ui.sh` first.
+- GitHub CLI: **jmrfox**. Do not open PRs unless asked.

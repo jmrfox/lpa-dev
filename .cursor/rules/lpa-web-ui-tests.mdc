@@ -6,7 +6,7 @@ alwaysApply: false
 
 # LPA Web UI tests (lean suite)
 
-Track phased review in Studio: [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md) (code **and** `*.spec.ts` per phase).
+Track phased review in this workspace: [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md) (code **and** `*.spec.ts` per phase).
 
 ## Philosophy
 

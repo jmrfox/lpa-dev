@@ -5,7 +5,9 @@
 
 set -euo pipefail
 
-LPA_ROOT="${LPA_ROOT:-/teamspace/studios/this_studio/lightning-pose-app}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LPA_DEV_ROOT="${LPA_DEV_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+LPA_ROOT="${LPA_ROOT:-$LPA_DEV_ROOT/lightning-pose-app}"
 PORTS=(8080 4200)
 
 is_app_cmd() {
