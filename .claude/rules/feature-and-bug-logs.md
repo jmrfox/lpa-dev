@@ -1,0 +1,1 @@
+../../.cursor/rules/feature-and-bug-logs.mdc

@@ -1,0 +1,1 @@
+../../.cursor/rules/lpa-dev-environment.mdc

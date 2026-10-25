@@ -9,7 +9,7 @@ alwaysApply: true
 
 Every change in **`lightning-pose-app/`** — code, scripts, CI, config, and docs (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `DEV.md`, `AGENTS.md`, etc.) — uses the same workflow:
 
-- New short-lived branch from `origin/main`, then a PR into `main`. One branch per feature, bugfix, or doc bundle. Combining is fine when the changes touch the same part of the repo.
+- New short-lived branch from `origin/main`, then a PR into `main`. One branch per feature, bugfix, or doc bundle. Combining is fine when the changes touch the same part of the repo, and one PR may close several related issues (list each with `Closes #N`).
 - Do not open PRs from `jmrfox/dev`.
 - Do not `git push` to `main`.
 
@@ -17,14 +17,14 @@ Every change in **`lightning-pose-app/`** — code, scripts, CI, config, and doc
 
 Jordan is the only user. Work on **`main`** — no feature branches or PRs for `lpa-dev` (`feature_plans/`, `BUGS.md`, `.cursor/rules/`, scripts, etc.). That is separate from **`lightning-pose-app`**, which always uses branch + PR.
 
-**Do not `git commit` or `git push`** in `lpa-dev` unless asked; leave the working tree for Jordan to review.
+When Jordan asks for an lpa-dev change, make it, then commit and push to `main`. Commit only the files that change touched; leave unrelated work in the tree alone.
 
 ## App version
 
 A pull request that changes Lightning Pose App **code** also updates the app version on that same branch before the PR is opened. A docs- or release-only PR follows the version/changelog/README rules below without unrelated code changes.
 
 - Canonical version: `lightning-pose-app/app_server/pyproject.toml`, `[project].version`.
-- Between releases, the version is the next app increment plus `.dev0`. After `2.4.2.3`, that is `2.4.2.4.dev0`. Details are in `lightning-pose-app/DEV.md` under Version numbers.
+- Between releases, the version is the next app increment plus `.dev0` (after `X.Y.Z.W` ships, `X.Y.Z.(W+1).dev0`). If `main` already has a `.dev0` version, leave it and add to that changelog heading. Details are in `lightning-pose-app/DEV.md` under Version numbers.
 - Add or extend `### [X.Y.Z.W.dev0]` at the top of `lightning-pose-app/CHANGELOG.md`. Name the test that covers each behavior change.
 - Update the **Changelog** section in `lightning-pose-app/README.md`: keep **Latest release (PyPI)** on the last published version until a release ships; set **Development on `main`** to the current `[project].version` and link to the matching changelog heading. When cutting a release, bump the latest-release line to the new `X.Y.Z.W` section.
 - Do not drop `.dev0`, and do not run `./scripts/publish_github_release.sh`, unless asked to cut a release.

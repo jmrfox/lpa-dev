@@ -1,0 +1,31 @@
+---
+description: LPA web UI standards — where they live, how far they apply, and what they leave out
+globs: lightning-pose-app/web_ui/**/*.{html,css,ts}
+paths:
+  - "lightning-pose-app/web_ui/**/*.{html,css,ts}"
+alwaysApply: false
+---
+
+# LPA frontend
+
+The frontend standard is `lightning-pose-app/AGENTS.md` (Frontend Architecture section), plus stack facts and gotchas in `lightning-pose-app/CLAUDE.md`. Follow those. This rule only covers what they do not, and how to handle conflicts.
+
+`web_ui/docs/context.md` is Angular CLI's generated prompt. Where it disagrees with `AGENTS.md`, `AGENTS.md` wins. Conflicts are being resolved in [#159](https://github.com/paninski-lab/lightning-pose-app/issues/159).
+
+## Scope: new and edited code
+
+New code and the lines you edit follow the standard. Do not rewrite untouched legacy code inside a feature or bugfix PR (constructor injection, `@Input`/`@Output`, `@ViewChild`, `@HostListener`, `standalone: true`, `ngClass`). That cleanup is [#157](https://github.com/paninski-lab/lightning-pose-app/issues/157), done with Angular's schematics. Modernizing a small component you are already changing is fine; say so in the PR.
+
+## Where the docs and the code disagree
+
+- **`components/`:** prefer presentational widgets (inputs/outputs only). A reusable picker that must load its own data (folders, videos, sessions) may inject `RpcService`, as six existing ones do. Do not add `ProjectInfoService` or `SessionService` to a new widget without saying why.
+- **State:** signals in components, signals in an `@Injectable` service for shared state. `@ngrx/signals` is installed but unused; do not introduce it unless asked.
+- **Forms:** existing forms are template-driven (`ngModel`). Match the form you are in. Do not adopt Angular's experimental Signal Forms.
+- **`any`:** lint does not catch it (`no-explicit-any` is off, [#158](https://github.com/paninski-lab/lightning-pose-app/issues/158)). Do not add `any` in new code; use real types or `unknown` and narrow it.
+
+## Not covered elsewhere
+
+- **Subscriptions:** a `subscribe()` in a component or a non-root service needs `takeUntilDestroyed()`, or use `toSignal()` / the `async` pipe instead. Forgotten cleanup is a classic Angular leak.
+- **`effect()`:** only for side effects (localStorage, canvas, manual DOM, external APIs). To derive or reset state from another signal, use `computed()` or `linkedSignal()`.
+- **Security:** never bind file contents or user text with `[innerHTML]`, and never call `DomSanitizer.bypassSecurityTrust*` on them.
+- **Custom CSS:** DaisyUI classes and Tailwind utilities first. A one-off class in a component `.css` file needs a reason (canvas, overlay coordinates, tight pixel constraints like `.jump-field`).

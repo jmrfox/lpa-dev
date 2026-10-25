@@ -39,4 +39,4 @@ const key = [left, right].sort().join('\0');
 
 ## Review habit
 
-During code review (including [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md)), flag new one-line passthrough helpers for removal unless they meet the exceptions above.
+During code review (including [lpa-web-ui-code-review.md](../../lpa-code-reviews/lpa-web-ui-code-review.md)), flag new one-line passthrough helpers for removal unless they meet the exceptions above.

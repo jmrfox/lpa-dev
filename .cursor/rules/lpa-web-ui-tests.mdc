@@ -1,12 +1,14 @@
 ---
 description: Lean, risk-focused Web UI unit tests for Lightning Pose App
 globs: lightning-pose-app/web_ui/**/*.ts
+paths:
+  - "lightning-pose-app/web_ui/**/*.ts"
 alwaysApply: false
 ---
 
 # LPA Web UI tests (lean suite)
 
-Track phased review in this workspace: [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md) (code **and** `*.spec.ts` per phase).
+Current review tracker: [lpa-global-code-review.md](../../lpa-code-reviews/lpa-global-code-review.md). The September 2026 per-spec audit in [lpa-web-ui-code-review.md](../../lpa-code-reviews/lpa-web-ui-code-review.md) is older than much of the current UI; check a spec against current `main` before acting on it.
 
 ## Philosophy
 
@@ -33,6 +35,12 @@ Track phased review in this workspace: [lpa-web-ui-code-review.md](../../lpa-web
 - Exact CSS class lists or pixel-perfect layout unless the class **is** the behavior (e.g. error state `text-error`).
 - Duplicating the same rule in a parent spec and a child spec—**one owner** per rule (see feature plans).
 - Exhaustive permutations of valid form input when one happy path + one rejection path suffices.
+
+## Copy, labels, and shortcuts
+
+- **Assert:** role and accessible name (`getByRole`-style queries, `aria-label`) and keyboard behavior. These are the contract for keyboard and screen-reader users.
+- **Do not assert:** tooltip (`data-tip`) wording, button copy, or class lists, unless that text or class is the fix.
+- `lightning-pose-app/AGENTS.md` currently asks for `data-tip` assertions on renamed tips; this rule wins until [#159](https://github.com/paninski-lab/lightning-pose-app/issues/159) aligns it. If an existing spec asserts old copy, update or drop that assertion rather than leaving it red.
 
 ## Per-spec scrutiny (during code review)
 

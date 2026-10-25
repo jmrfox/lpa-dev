@@ -1,0 +1,1 @@
+../../.cursor/rules/no-ui-control.mdc

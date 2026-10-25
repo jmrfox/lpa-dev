@@ -1,6 +1,8 @@
 ---
 description: AI assistant workflow for collaborative UI development, frontend architectural advisory, modularity, and learning in LPA.
 globs: lightning-pose-app/web_ui/**/*.{html,css,ts}
+paths:
+  - "lightning-pose-app/web_ui/**/*.{html,css,ts}"
 alwaysApply: false
 ---
 
@@ -16,6 +18,9 @@ This rule guides the AI when collaborating on Lightning Pose App UI development 
 - **Proactive Frontend Architecture Mentorship:**
   - Because the user is developing frontend expertise, the AI should briefly explain the rationale ("the why") behind architectural recommendations (e.g., why isolating presentational components simplifies testing, why `linkedSignal()` prevents state desync, or how `ChangeDetectionStrategy.OnPush` improves performance).
   - Actively suggest modern Angular (v20+) idioms, DaisyUI 5 components, and Tailwind 4 utilities whenever an opportunity simplifies the code or avoids bespoke CSS.
+- **Push back on UX:**
+  - When a request cuts against common UX or accessibility practice, say so before implementing it, and name the convention you would follow instead. Examples: a control with no keyboard path, focus lost after a dialog closes, a destructive action without confirmation, an unlabeled icon button, or a state with no loading, empty, or error message.
+  - When Angular or community practice is unsettled or recently changed, say so and point to the source (angular.dev, DaisyUI docs) rather than presenting one option as settled.
 
 ## Architectural Principles for Modular UI
 
@@ -41,14 +46,14 @@ Before writing large blocks of code, present a brief plan:
 - **UI primitives:** Which DaisyUI 5 components and Tailwind utilities will be used.
 
 ### 2. Implement Modular Code
-- Build components adhering to modern Angular v20+ standards (signals, `OnPush`, native block control flow `@if`/`@for`, `@let`, `inject()`).
+- Follow `lightning-pose-app/AGENTS.md` and `.cursor/rules/lpa-frontend.mdc` (signals, `OnPush`, `@if`/`@for`, `@let`, `inject()`; new and edited code only).
 - Keep templates clean and declarative.
 
 ### 3. Unit tests (`*.spec.ts`) — lean, risk-focused
 - Add or update specs only for behavior that could **cause real problems** if it broke (data loss, wrong labels/predictions, blocked flows, non-obvious rules). See `.cursor/rules/lpa-web-ui-tests.mdc`.
 - Do **not** add tests “for coverage” or “because the component exists.” Remove or merge specs that only duplicate implementation or another file’s assertions.
 - When a spec is warranted: assert user-observable behavior; use `fixture.componentRef.setInput(...)` for signal inputs; mock all backend services.
-- Pair code review with spec review using [lpa-web-ui-code-review.md](../../lpa-web-ui-code-review.md).
+- Pair code review with spec review using [lpa-web-ui-code-review.md](../../lpa-code-reviews/lpa-web-ui-code-review.md).
 
 ### 4. Provide Storybook Stories (`*.stories.ts`)
 - Reusable components in `components/` **require** Storybook stories demonstrating primary states (e.g. default, disabled, active, empty/loading).

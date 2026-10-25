@@ -1,0 +1,1 @@
+../../.cursor/rules/lpa-web-ui-tests.mdc

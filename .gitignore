@@ -47,3 +47,6 @@
 .cursor/projects/*/agent-tools/
 .cursor/projects/*/terminals/
 
+
+# Claude Code per-machine settings
+.claude/settings.local.json

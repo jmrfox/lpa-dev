@@ -4,11 +4,13 @@ Git snapshot of the **Lightning Studio** home directory used for Lightning Pose 
 
 ## What is tracked here
 
-- `.cursor/` — rules, skills, plans, and related Cursor project config (see `.cursor/.gitignore`)
+- `CLAUDE.md` — Claude Code entry point (primary agent)
+- `.cursor/` — rules (canonical for both agents), plans, and related Cursor project config
+- `.claude/rules/` — symlinks to `.cursor/rules/*.mdc` so Claude Code loads the same rules
 - `bin/` — `lpa-dev`, `gitstatus`, `lpa-stop`
 - `shell/` — `lpa-dev.zsh` (zsh `setup` function and PATH)
 - `scripts/` — `wsl-one-time-setup.sh` (WSL toolchain bootstrap)
-- `feature_plans/`, `BUGS.md`, `lpa-web-ui-code-review.md`
+- `feature_plans/`, `BUGS.md`, `lpa-code-reviews/`
 - `project.yaml`, `.lightningignore`, `.lightning_studio/` hooks
 - Editor snippets: `.vscode/settings.json`, `.angular-config.json`, `.storybook/`
 

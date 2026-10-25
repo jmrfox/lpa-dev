@@ -1,5 +1,12 @@
 # LPA Web UI code review tracker
 
+> **Historical snapshot (2026-09-29).** This detailed Angular/test audit predates more
+> than 11,000 lines of work now on `origin/main`, including the File Manager, project
+> cache and validation, safer deletion, skeleton overlays, and new label/video behavior.
+> Keep it for its review method and test notes, but re-verify every finding before acting.
+> The current cross-stack tracker is
+> [`lpa-global-code-review.md`](lpa-global-code-review.md).
+
 Rolling, human-in-the-loop review of [lightning-pose-app/web_ui/](lightning-pose-app/web_ui/) (Angular app under `src/app/`). Goal: spot architectural drift, test gaps, performance footguns, and inconsistencies—not to rewrite working features.
 
 Each phase reviews **source and specs together**. The suite should stay **lean**: only tests that guard problems that could actually hurt users, labels, or project data. Expect to **remove, merge, or trim** specs—not only add them. Policy: `.cursor/rules/lpa-web-ui-tests.mdc`.
