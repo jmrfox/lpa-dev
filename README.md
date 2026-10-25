@@ -20,7 +20,7 @@ Git snapshot of the **Lightning Studio** home directory used for Lightning Pose 
 |------|--------|
 | `lightning-pose/` | [paninski-lab/lightning-pose](https://github.com/paninski-lab/lightning-pose) |
 | `lightning-pose-app/` | [paninski-lab/lightning-pose-app](https://github.com/paninski-lab/lightning-pose-app) |
-| `data/`, `LPProjects/` | Large local/smoke-test data |
+| `data/`, `LPProjects/` | Large local data, including small test projects |
 | `.lightning_studio/.studiorc` | Lightning Studio machine config (see `.lightning_studio/README.md`) |
 
 ## Layout (both machines)
@@ -77,7 +77,7 @@ lpa-dev status
 
 - **UI tests** (`lpa-dev test`): install Chromium or Google Chrome; set `CHROME_BIN` if auto-detection fails.
 - **GitHub**: `gh auth login` and `gh auth setup-git` as **jmrfox**.
-- **Smoke data** (optional): copy `LPProjects/mirror-mouse-fused-tiny` from Studio into `lpa-dev/LPProjects/`.
+- **Small test project** (optional): copy `LPProjects/mirror-mouse-fused-tiny` from Studio into `lpa-dev/LPProjects/`.
 
 ## Lightning Studio one-time setup
 

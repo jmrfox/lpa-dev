@@ -1,0 +1,19 @@
+---
+description: Write in plain language; no software-dev slang
+alwaysApply: true
+---
+
+# Plain language
+
+LPA's readers include neuroscientists who are not developers. Say the literal thing instead of using dev slang.
+
+This applies to GitHub issues and PRs, CHANGELOG, BUGS.md, feature plans, rules, code comments, and chat replies.
+
+| Avoid | Say instead (example) |
+|-------|------------------------|
+| golden path, happy path | one end-to-end test that creates a project, opens each page, and deletes it |
+| smoke test | install the built wheel in a clean environment and open the app |
+| footgun | easy to misuse: renaming a view silently orphans its label file |
+| load-bearing, yak shaving, bikeshed, dogfood, blast radius | what actually depends on it, what is in the way, what is undecided, who uses it, what else breaks |
+
+Standard technical terms (test, migration, schema, lock, branch) are fine. When an Angular or library term is needed, use it, and explain it briefly if the reader may not know it.

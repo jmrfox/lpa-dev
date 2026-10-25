@@ -7,7 +7,7 @@ alwaysApply: true
 
 Workspace root is the **lpa-dev** repo (`LPA_DEV_ROOT`); **lightning-pose** and **lightning-pose-app** are sibling clones inside it. Helpers: `bin/lpa-dev`, `shell/lpa-dev.zsh` (zsh `setup` function).
 
-Registered projects: **`~/.lightning-pose/projects.toml`** on every machine (paths inside the file are machine-specific). Optional smoke data under **`$LPA_DEV_ROOT/LPProjects/`** (gitignored; do not commit)—e.g. `LPProjects/mirror-mouse-fused-tiny` and `LPProjects/mirror-mouse-fused` (single-view fused).
+Registered projects: **`~/.lightning-pose/projects.toml`** on every machine (paths inside the file are machine-specific). Optional small test projects under **`$LPA_DEV_ROOT/LPProjects/`** (gitignored; do not commit)—e.g. `LPProjects/mirror-mouse-fused-tiny` and `LPProjects/mirror-mouse-fused` (single-view fused).
 
 ## Which machine am I on?
 

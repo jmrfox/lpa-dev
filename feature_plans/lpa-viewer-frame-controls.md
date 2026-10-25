@@ -163,7 +163,7 @@ There are no video-player unit tests today. Add a focused spec rather than a ful
 - `video-player-state.spec.ts`: step forward/back clamps at 0 and last frame; `stepFrame(10)` / `stepFrame(-10)` clamp at the ends; go to start/end; rate nudge clamps at 1/16 and 1; `reset()` restores 1x and time 0.
 - `video-player-controls.component.spec.ts` (or a small keyboard helper spec): Space toggles play; Left/Right step by 1; Shift+Left/Right step by 10; keys ignored inside a text input and when a button is focused (Space).
 
-Manual (Studio, fused-mouse smoke project):
+Manual (Studio, small fused-mouse test project):
 
 - Layout at the bottom of the Viewer with a session loaded; speed menu opens **up**, not off-screen.
 - Multi-view session: frame step and slow-mo stay in sync across tiles.

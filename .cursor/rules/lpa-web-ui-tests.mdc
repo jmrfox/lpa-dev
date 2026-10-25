@@ -34,7 +34,7 @@ Current review tracker: [lpa-global-code-review.md](../../lpa-code-reviews/lpa-g
 - Testing that a child component was called when the parent only forwards an `@Input` (test the child or the integration once).
 - Exact CSS class lists or pixel-perfect layout unless the class **is** the behavior (e.g. error state `text-error`).
 - Duplicating the same rule in a parent spec and a child spec—**one owner** per rule (see feature plans).
-- Exhaustive permutations of valid form input when one happy path + one rejection path suffices.
+- Exhaustive permutations of valid form input when one valid case + one rejected case suffices.
 
 ## Copy, labels, and shortcuts
 

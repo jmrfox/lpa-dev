@@ -7,7 +7,7 @@
 > The current cross-stack tracker is
 > [`lpa-global-code-review.md`](lpa-global-code-review.md).
 
-Rolling, human-in-the-loop review of [lightning-pose-app/web_ui/](lightning-pose-app/web_ui/) (Angular app under `src/app/`). Goal: spot architectural drift, test gaps, performance footguns, and inconsistencies—not to rewrite working features.
+Rolling, human-in-the-loop review of [lightning-pose-app/web_ui/](lightning-pose-app/web_ui/) (Angular app under `src/app/`). Goal: spot architectural drift, test gaps, easy-to-miss performance problems, and inconsistencies—not to rewrite working features.
 
 Each phase reviews **source and specs together**. The suite should stay **lean**: only tests that guard problems that could actually hurt users, labels, or project data. Expect to **remove, merge, or trim** specs—not only add them. Policy: `.cursor/rules/lpa-web-ui-tests.mdc`.
 
