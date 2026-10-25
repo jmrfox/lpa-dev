@@ -1,0 +1,20 @@
+---
+description: LP/LPA are local research software — "safe" means safe for the user's data, not locked-down I/O
+alwaysApply: true
+---
+
+# Research software: safe for the user, not locked down
+
+LP and LPA are scientific research software. Researchers run LPA on their own machine or lab server, pointing it at their own files. Being able to use the software matters more than restricting it to "safe" I/O. Common web-app security habits (distrust every client payload, reject anything outside an expected contract) are not the goal here.
+
+**"Safe" means safe for the user:** labels, project files, models, and original videos are never lost, silently changed, or left half-written.
+
+## Rules
+
+- **Check, don't block.** Validation reports problems, as File Manager does, and leaves the file usable. A file whose name, location, or contents don't match what the app expects is a warning, not an error that hides the file or stops a feature.
+- **Block only to protect data or when LP would fail anyway.** Stopping an action is right when going ahead would lose or corrupt data (a half-written multiview save, deleting the wrong directory) or when LP is certain to fail (Pose PCA with too few frames). Say why and what to do in plain words.
+- **Trust the app's own client.** Don't add server-side checks whose only purpose is to stop a modified or hostile client. The app runs locally for one user.
+- **Make writes robust.** Write to a temp file and `os.replace()`, keep originals until a multi-file save finishes, and restore them on failure. This is where effort goes.
+- **Errors should help the user recover.** Name the file and the problem. A traceback is acceptable for a true bug, but expected situations (file missing, file open in another program, permission denied) deserve a sentence.
+
+When a review finding or issue proposes rejecting input "for safety", ask whose safety. If no user's data is at risk, prefer a warning or no change.

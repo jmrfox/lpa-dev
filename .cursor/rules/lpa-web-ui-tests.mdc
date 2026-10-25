@@ -25,7 +25,7 @@ Current review tracker: [lpa-global-code-review.md](../../lpa-code-reviews/lpa-g
 | **Data loss or corruption** | Saving labels, project config patches, wrong RPC payload shape |
 | **Silent wrong science** | Viewer frame/time jumps, likelihood threshold hiding points, multiview mixing models |
 | **Blocked workflow** | Cannot save, cannot open label file, dialog never closes after success |
-| **Security / paths** | Path traversal in user-entered dirs, registering wrong project root |
+| **Paths that could harm user data** | Deleting or overwriting the wrong directory, registering the wrong project root |
 | **Non-obvious rules** | Skeleton validity catalog, undirected pair deduping, bones not crossing views/models |
 
 ## Usually skip (or keep minimal)

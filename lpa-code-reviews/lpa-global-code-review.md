@@ -37,6 +37,7 @@ to be checked out.
 4. Prefer a small number of tests around real data-loss and scientific-validity risks.
 5. Extend the existing stack before adding a parallel framework or state system.
 6. Promote a finding to a GitHub issue only after confirming scope, user impact, and an acceptance test.
+7. "Safe" means safe for the user's data, not locked-down input. Prefer warnings over blocking, and do not add checks whose only purpose is to stop a modified client (see `.cursor/rules/lpa-research-software.mdc`).
 
 ## Status and priority
 

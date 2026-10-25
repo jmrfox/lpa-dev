@@ -1,0 +1,1 @@
+../../.cursor/rules/lpa-research-software.mdc

@@ -27,5 +27,5 @@ New code and the lines you edit follow the standard. Do not rewrite untouched le
 
 - **Subscriptions:** a `subscribe()` in a component or a non-root service needs `takeUntilDestroyed()`, or use `toSignal()` / the `async` pipe instead. Forgotten cleanup is a classic Angular leak.
 - **`effect()`:** only for side effects (localStorage, canvas, manual DOM, external APIs). To derive or reset state from another signal, use `computed()` or `linkedSignal()`.
-- **Security:** never bind file contents or user text with `[innerHTML]`, and never call `DomSanitizer.bypassSecurityTrust*` on them.
+- **Showing file data:** show file names, keypoint names, and file contents as text (`{{ }}` or `[textContent]`), not `[innerHTML]`, and don't use `DomSanitizer.bypassSecurityTrust*`. Odd characters in a name should display as-is, not break the page.
 - **Custom CSS:** DaisyUI classes and Tailwind utilities first. A one-off class in a component `.css` file needs a reason (canvas, overlay coordinates, tight pixel constraints like `.jump-field`).
