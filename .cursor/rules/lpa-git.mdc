@@ -19,6 +19,10 @@ Jordan is the only user. Work on **`main`** — no feature branches or PRs for `
 
 When Jordan asks for an lpa-dev change, make it, then commit and push to `main`. Commit only the files that change touched; leave unrelated work in the tree alone.
 
+## Mentions
+
+Don't @-mention people in issues, PRs, or comments unless they need to act or answer. To cite someone, use their name without the @ and link the comment.
+
 ## Changes that reach LP
 
 - An LPA issue that needs a change in the **lightning-pose** repo gets the `LP change` label. LP is developed by others; open the LP side as its own PR there.
