@@ -4,6 +4,7 @@
 
 # Local datasets and LP projects (not for git)
 /data/
+/datasets/
 /LPProjects/
 
 # Studio-only config (often a broken symlink on WSL)
@@ -47,6 +48,7 @@
 .cursor/projects/*/agent-tools/
 .cursor/projects/*/terminals/
 
-
+# Data
+datasets/
 # Claude Code per-machine settings
 .claude/settings.local.json
