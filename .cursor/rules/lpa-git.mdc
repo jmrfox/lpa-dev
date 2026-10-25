@@ -19,6 +19,11 @@ Jordan is the only user. Work on **`main`** — no feature branches or PRs for `
 
 When Jordan asks for an lpa-dev change, make it, then commit and push to `main`. Commit only the files that change touched; leave unrelated work in the tree alone.
 
+## Changes that reach LP
+
+- An LPA issue that needs a change in the **lightning-pose** repo gets the `LP change` label. LP is developed by others; open the LP side as its own PR there.
+- When an LPA change makes something in the LP docs wrong or incomplete (install steps, app how-tos, screenshots), say so in the LPA PR description. Updating the LP docs with LPA information is ongoing work and does not need its own issue.
+
 ## App version
 
 A pull request that changes Lightning Pose App **code** also updates the app version on that same branch before the PR is opened. A docs- or release-only PR follows the version/changelog/README rules below without unrelated code changes.
