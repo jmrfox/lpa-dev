@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Labeler shows the wrong image near the start of a video (fixed)
+
+**Status:** Fixed on `fix/labeler-context-frames` (paninski-lab/lightning-pose-app#161, PR paninski-lab/lightning-pose-app#167).
+
+**Symptoms:** For a frame at video index 0 or 1, the Labeler showed frame 2 under that frame's keypoints, so labels could be placed on the wrong picture. An image whose file name had no digits (for example imported `frame_a.png`) showed no image at all.
+
+**Cause:** The widget built the context list by skipping indices below 0, then always showed slot 2 as the current frame. Slot 2 is only the current frame when both earlier frames exist. A name with no trailing digits gave an empty list.
+
+**Fix:** `labeler/temporal-context.ts:contextImgPaths` builds the five slots the way LP's `get_context_img_paths` does: indices floored at 0, the first run of digits in the file name, every copy of it replaced. A slot whose image fails to load shows the current frame, as LP's dataset does for a missing file. A name with no digits shows just the current image, and the temporal context controls are disabled.
+
+**Tests:** `temporal-context.spec.ts` (frame 0 → `[0, 0, 0, 1, 2]`, frame 1 → `[0, 0, 1, 2, 3]`, no digits, digits in two places, padding); `image-label-widget.component.spec.ts` (frames 0 and 1 show their own image, no-digit name shows the image, failed slot shows the current frame); `labeler-center-panel.component.spec.ts` (controls disabled with a tip for a no-digit name); the last frame of a video shows the current frame in slots +1 and +2.
+
 ## Label files other than CollectedData.csv cannot be used (fixed)
 
 **Status:** Fixed on `feature/usable-label-csvs`.
