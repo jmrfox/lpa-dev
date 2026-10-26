@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Multiview label saves can be left half-written (fixed)
+
+**Status:** Fixed on `fix/recoverable-label-saves` (paninski-lab/lightning-pose-app#144, with #141; PR paninski-lab/lightning-pose-app#168).
+
+**Symptoms:** None seen in use. If a save failed partway (disk full, permission error, a file locked by another program), earlier views could already hold the new labels while later views and the labeling queues kept the old state. Separately, a Labeler save and Extract Frames could each overwrite the other's change to `*.unlabeled.jsonl`, and a crash while writing `projects.toml` could empty the project list.
+
+**Cause:** `save_mvframe` committed CSVs with sequential `os.replace()` calls and updated sidecars afterwards, with no rollback. Extract Frames' sidecar update did not share the save's lock. `_write_projects_toml` wrote in place.
+
+**Fix:** `utils/file_transaction.py`: `replace_files` backs up every target, replaces them in order, and restores them from the backups if any replace fails; if a restore fails it raises `CommitRollbackError` naming each file and its kept backup. A save stages and reads back each CSV and sidecar, then commits all of them in one `replace_files`. `label_files_lock` (threading) is held by both the save and `add_to_unlabeled_sidecar_files`. `write_atomic` writes `projects.toml` through a temp file (resolving a symlink first). A process killed mid-commit is not recovered automatically; the `.bak` and `.tmp` files next to the label files hold both versions.
+
+**Tests:** `test_file_transaction.py`; `test_save_mvframe.py` (`test_save_mvframe_failed_replace_restores_every_file` for each CSV and sidecar boundary, `test_save_mvframe_unrestorable_failure_names_files_and_keeps_backups`, `test_save_mvframe_rejected_view_leaves_no_temp_files`, `test_save_mvframe_deletes_the_last_labeled_frame`, `test_extract_frames_queue_update_waits_for_a_save`); `test_project.py` (`test_write_projects_toml_failure_keeps_old_registry`, `test_write_projects_toml_keeps_symlink`).
+
 ## Labeler shows the wrong image near the start of a video (fixed)
 
 **Status:** Fixed on `fix/labeler-context-frames` (paninski-lab/lightning-pose-app#161, PR paninski-lab/lightning-pose-app#167).
