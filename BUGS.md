@@ -2,6 +2,42 @@
 
 This is a log for tracking bugs.
 
+## Small keypoint labels show black spiky shapes when zoomed (fixed)
+
+**Status:** Fixed on `fix/keypoint-markers` (PR paninski-lab/lightning-pose-app#170; found in review, no issue).
+
+**Symptoms:** Zoomed in, a 1–4px keypoint name sat on a large black shape with spikes instead of a thin outline.
+
+**Cause:** The outline was `-webkit-text-stroke: 2px` at every label size. On a small label the stroke is as thick as the letters, and Chrome draws text strokes with sharp (mitered) corners that cannot be rounded on page text.
+
+**Fix:** The stroke is `0.25em` (2px at the default 8px), and placement pads by half of it (`labelStrokePad`). The edit-mode crosshair name (SVG text) uses round joins.
+
+**Tests:** `keypoint-container.component.spec.ts` "label outline"; `keypoint-label-placement.spec.ts` `labelStrokePad`. Before/after screenshot at 40× zoom in headless Chromium.
+
+## Keypoint labels can sit nearer a neighbor's marker than their own (fixed)
+
+**Status:** Fixed on `fix/keypoint-markers` (paninski-lab/lightning-pose-app#154, option 1; PR paninski-lab/lightning-pose-app#170). Crowded spots where every corner is worse remain.
+
+**Symptoms:** With two keypoints close together, a name could sit closer to the other keypoint's marker, so the wrong point could be read or corrected.
+
+**Cause:** `placeKeypointLabels` only avoided overlap (with other names and markers) and leaving the frame. A name could be next to another marker without overlapping it.
+
+**Fix:** A corner whose label box is nearer another marker's center than its own marker's center (by more than 0.5px) is not "clear". In the fallback, such a corner costs as much as the label's whole area, so it is used only when every corner is worse. Markers stay one color for now; per-keypoint colors (#154 option 3) would need a palette and a Viewer decision (Viewer colors mean model today).
+
+**Tests:** `keypoint-label-placement.spec.ts` "nearer another marker". Real-data check (script, not a spec): fly-anipose-tiny, 8,820 names, marker size 10 and font 8: names nearer another marker 17.4% → 8.6%.
+
+## Keypoint markers shift, turn capsule-shaped, or have an off-center cross (fixed)
+
+**Status:** Fixed on `fix/keypoint-markers` (paninski-lab/lightning-pose-app#169, PR paninski-lab/lightning-pose-app#170).
+
+**Symptoms:** Zoomed in, a marker moved slightly when Keypoint size changed, some markers were capsules, and the cross was not at the marker's center.
+
+**Cause:** Markers were HTML `div`s (`rounded-full`) positioned with `left`/`top` inside the zoom's CSS `scale()`. The browser snaps an HTML box's edges to whole CSS pixels before the scale, so a fractional position moved by up to half a pixel times the zoom, width and height could snap to different values (capsule), and the cross SVG inside followed the snapped box. The drag offset was also taken from the snapped box (`event.offsetX`).
+
+**Fix:** Markers, the selected ring and the cross are drawn in one SVG layer in image coordinates (`keypoint-container.component.html`). The divs stay as invisible hit targets, tooltip anchors and label anchors. The drag offset is pointer position minus the keypoint's true position (`toLocal`). Pixel convention checked: LP builds heatmaps by scaling coordinates directly (`data/heatmaps.py`), and LPA saves clicks in the same coordinates it draws, so no half-pixel shift was added.
+
+**Tests:** `keypoint-container.component.spec.ts` "markers" (geometry at sizes 5 and 10 for a fractional position, cross center, selected ring, click selects, exact drag, Viewer shadow).
+
 ## Multiview label saves can be left half-written (fixed)
 
 **Status:** Fixed on `fix/recoverable-label-saves` (paninski-lab/lightning-pose-app#144, with #141; PR paninski-lab/lightning-pose-app#168).
