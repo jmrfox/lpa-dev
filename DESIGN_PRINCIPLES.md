@@ -3,7 +3,7 @@
 How we decide where files live, how they're named, and which code is allowed to know about it. Written 2026-10-27. Update it when we decide something new.
 
 **Sources:**
-- `LP Project Spec v1.pdf` (this repo), the directory spec Karan Sikka wrote in Oct–Nov 2025. Its status line says "Conceptually approved, investigating changes to LP code required". Most of its v1 layout was never built. We treat it as a source of ideas, not as rules.
+- `LP Project Spec v1.pdf` (kept in the lpa-dev folder, not committed), the directory spec Karan Sikka wrote in Oct–Nov 2025. Its status line says "Conceptually approved, investigating changes to LP code required". Most of its v1 layout was never built. We treat it as a source of ideas, not as rules.
 - Karan's note on the path layers (quoted under principle 3).
 - Our own rules: `.cursor/rules/lpa-research-software.mdc` and the "align with LP" rule.
 
