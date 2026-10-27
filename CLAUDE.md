@@ -24,6 +24,7 @@ Claude Code is the primary agent. Cursor is used afterwards to review Claude's c
 
 ## Workspace docs
 
+- `DESIGN_PRINCIPLES.md` — how LPA names, places and resolves project files; read before changing file layout or path code
 - `feature_plans/` — feature designs (one `.md` each)
 - `BUGS.md` — bug log with status and covering test
 - `lpa-code-reviews/` — code-review trackers for LPA
