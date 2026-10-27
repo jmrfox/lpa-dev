@@ -2,6 +2,30 @@
 
 This is a log for tracking bugs.
 
+## Training fails below 250 epochs; schedule doesn't follow Epochs (fixed)
+
+**Status:** Fixed on `fix/model-dialog-schedule-pca` (paninski-lab/lightning-pose-app#172; PR paninski-lab/lightning-pose-app#178).
+
+**Symptoms:** A model created with fewer than 250 epochs stopped at the start of training: `all training.lr_scheduler_params.multisteplr.milestones must be <= training.max_epochs (100)`. Longer or shorter runs kept the 300-epoch schedule (unfreeze at 20, learning-rate drops at 150/200/250).
+
+**Cause:** The dialog's Epochs field wrote only `min_epochs` / `max_epochs`. LP validates milestones against `max_epochs` (`ModelConfig._validate_training`). LP's own `recommender.py` also writes the fixed 20 / [150, 200, 250], so there was no LP rule to copy.
+
+**Fix:** `epoch-schedule.ts` reads the epoch-counted settings from the base config the dialog uses (project `configs/default.yaml`, else LPA's default) and scales them by epochs ÷ its `max_epochs`: `unfreezing_epoch`, `multisteplr` milestones, and, when present, `patch_mask.init_epoch` / `final_epoch` and `callbacks.anneal_weight.freeze_until_epoch` (the last three go beyond the issue; same reasoning: at 50 epochs the default freeze of 60 would keep the unsupervised losses off for the whole run). Whole epochs; unfreezing ≥ 1; milestones increasing, after unfreezing, `<= max_epochs`. Step-based base configs are left alone and Epochs is disabled, because writing `max_epochs` into them fails LP's steps-vs-epochs check. The schedule is shown under Epochs.
+
+**Tests:** `epoch-schedule.spec.ts`; `create-model-dialog.component.spec.ts` "epochs scale the schedule". Also checked with LP's `ModelConfig._validate_training` on `config_default.yaml` (script, not a spec): scaled 5, 50, 100 and 600 epochs pass; unscaled 100 fails with the error above.
+
+## Pose PCA can be chosen without enough labeled frames (fixed)
+
+**Status:** Fixed on `fix/model-dialog-schedule-pca` (paninski-lab/lightning-pose-app#54; PR paninski-lab/lightning-pose-app#178).
+
+**Symptoms:** A semi-supervised single-view model with Pose PCA and few labeled frames failed in training with `cannot fit PCA with N samples < D observation dimensions`.
+
+**Cause:** LP fits Pose PCA on the training split and needs at least 2 × keypoints training frames (`lightning_pose/utils/pca.py`). The dialog didn't check.
+
+**Fix:** New `countLabeledFrames` RPC counts the CSV rows as LP's `parse_label_csv` reads them. `pose-pca.ts` copies LP's `split_sizes_from_probabilities` to get the training count, rather than the issue's `ceil(2K / 0.95)` (which is off by one at some sizes: 17 keypoints need 35 frames, not 36). With too few, the Pose PCA checkbox is unchecked and disabled with a tip naming both numbers; the user's choice comes back when it becomes available. The tip opens to the right; centered below, the dialog edge cut it off. Multiview PCA isn't offered by the dialog, so it isn't checked.
+
+**Tests:** `pose-pca.spec.ts`; `create-model-dialog.component.spec.ts` "Pose PCA needs enough frames"; `test_count_labeled_frames.py`.
+
 ## Small keypoint labels show black spiky shapes when zoomed (fixed)
 
 **Status:** Fixed on `fix/keypoint-markers` (PR paninski-lab/lightning-pose-app#170; found in review, no issue).
