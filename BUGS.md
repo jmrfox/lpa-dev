@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Extracted frame paths saved with \ on Windows (fixed)
+
+**Status:** Fixed on `fix/frame-paths-posix` (paninski-lab/lightning-pose-app#175; PR paninski-lab/lightning-pose-app#179).
+
+**Symptoms:** On Windows, Extract Frames wrote `labeled-data\sess1_cam1\img00000042.png` into `CollectedData_<view>.unlabeled.jsonl`. Found by reading the code, not a user report; not reproduced on a Windows machine (tests use `PureWindowsPath`). Expected effects: the same frame queued twice (once per separator), a labeled `\` entry left in the queue after saving, and image URLs with `\` on another OS.
+
+**Cause:** `_update_unlabeled_files` used `str(path.relative_to(data_dir))`, which uses the OS separator. The queue's add path and the save's queue removal compared strings exactly.
+
+**Fix:** Write with `.as_posix()`. Read queue paths with `/` everywhere: `queue_frame_path` in `utils/mv_label_file.py` (a validator on `LabelingQueueEntry`, used by the add path), the save's queue removal in `save_mvframe.py`, and the Labeler's loader (`label-file-fetcher.service.ts`). No migration; existing `\` entries are read as `/` and written back with `/` the next time the add path rewrites the file.
+
+**Tests:** `test_extract_frames.py::test_extracted_frame_is_queued_with_forward_slashes`; `test_save_mvframe.py::test_queue_with_backslash_and_slash_entries_counts_the_frame_once`, `test_queue_entry_reads_backslashes_as_slashes`; `label-file-fetcher.service.spec.ts`. The three backend tests fail on the old code.
+
 ## Training fails below 250 epochs; schedule doesn't follow Epochs (fixed)
 
 **Status:** Fixed on `fix/model-dialog-schedule-pca` (paninski-lab/lightning-pose-app#172; PR paninski-lab/lightning-pose-app#178).
