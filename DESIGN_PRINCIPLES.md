@@ -74,7 +74,7 @@ Session names, view names, keypoint names, label file names and model names show
 
 The project's layout version is stored in its config. A change to the layout gets a numbered migration in `app_server/src/litpose_app/migrations/`, and is never done as a silent rewrite (see `AGENTS.md`). A migration must leave the user's labels, models and videos readable by LP.
 
-*Status: in place for migrations. Open on the version number; see the open questions.*
+*Status: in place for migrations. Today's layout is version 1, which is what `CreateNewProject` and migration 003 already write; 0 or a missing field means a project written before the field existed, with the same layout. The spec's layout, if ever built, would be version 2. `PathUtil.for_version(1)` still raises until paninski-lab/lightning-pose-app#177 lands.*
 
 ## 7. A model folder is enough to run inference
 
@@ -121,6 +121,5 @@ These are the spec's v1 layout changes. None are in LP. Each would need an LP ch
 
 ## Open questions
 
-1. **Version number.** New projects get `schema_version: 1` in `project.yaml` (`routes/project.py` `CreateNewProject`, migration 003). But the layout they get is today's layout, which `PathUtil` calls version 0, and `PathUtil.for_version(1)` raises `NotImplementedError`. Do we rename today's layout to version 1 and keep 0 for "unknown/old", or write 0 for new projects? (paninski-lab/lightning-pose-app#177)
-2. **Inference on videos outside the project.** The spec left this open. LPA's inference uses videos inside the project. If we allow outside videos, where do the predictions go, and how does the Viewer find them?
-3. **`paths/` types.** `paths/` imports `SessionKey` and the other keys from `lightning_pose.data.datatypes`, which only had them in Karan's fork. Define them in LPA, or ask for them in LP?
+1. **Inference on videos outside the project.** The spec left this open. LPA's inference uses videos inside the project. If we allow outside videos, where do the predictions go, and how does the Viewer find them?
+2. **`paths/` types.** `paths/` imports `SessionKey` and the other keys from `lightning_pose.data.datatypes`, which only had them in Karan's fork. Define them in LPA, or ask for them in LP?
