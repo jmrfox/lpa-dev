@@ -44,7 +44,7 @@ What that means for us:
 - Each naming rule is written **once**. On the backend that place is `app_server/src/litpose_app/paths/`: one `ResourceUtil` per kind of file, with `get_path` (key → path) and `parse_path` (path → key). It matches the spec's `PathResolver`, kept inside LPA.
 - The UI doesn't copy a backend rule (a glob pattern, a folder name, a character set). It asks the backend for the list, or for a check.
 
-Where we are: `paths/` exists but nothing calls it, and most of its methods are unfinished. The File Manager and several routes write the rules out themselves. Fixing that for label CSVs and calibrations is paninski-lab/lightning-pose-app#173. The same applies to the other kinds of file afterwards.
+Where we are: `paths/` exists but nothing calls it, and most of its methods are unfinished. The File Manager and several routes write the rules out themselves. Fixing that for label CSVs and calibrations is paninski-lab/lightning-pose-app#173. The session/view split from a video name has three different versions today (paninski-lab/lightning-pose-app#174). The same applies to the other kinds of file afterwards.
 
 *Status: adopted, partly in place.*
 
@@ -64,11 +64,11 @@ The spec goes further: store keys, not even relative paths, in files. That only 
 Session names, view names, keypoint names, label file names and model names show up inside other files and filenames (calibrations, model configs, EKS configs). Renaming one means updating every place that refers to it, so:
 - Treat a key as permanent once other files use it. The rename tools must update every reference, or say clearly which ones they didn't update.
 - Characters: letters, digits, `-`, `_`, `.`. This is the rule in `validate_files._NAME_RE` and the calibration rename. The spec also allowed spaces. We don't, because spaces in filenames cause trouble in shell commands and cluster scripts.
-- **A view name must not contain `_`.** A video is `<session>_<view>`, split at the last `_`. LPA doesn't check this when a project is created. It should warn there.
+- **A view name must not contain `_`.** A video is `<session>_<view>`, split at the last `_`. LPA doesn't check this when a project is created yet.
 - Two keys that differ only in letter case (`Mouse1`, `mouse1`) are the same file on macOS and Windows. Warn about it.
 - Keep names well under 255 characters. The spec suggests about 100.
 
-*Status: adopted. The view-name and case checks are not built.*
+*Status: adopted. The view-name and case checks are not built (paninski-lab/lightning-pose-app#176).*
 
 ## 6. Layout changes go through a version and a migration
 
@@ -118,11 +118,9 @@ These are the spec's v1 layout changes. None are in LP. Each would need an LP ch
 | Flat models folder, `video-preds/<name>` without `.mp4`, `ensemble.txt` | LP's current output layout, `ensemble.yaml` |
 | `misc/` folder for user files | Not needed. LPA ignores files it doesn't know. |
 | `project_key` in model config, no `data_dir` | LP config as is (see 4) |
-| Single-view projects with view = none | LPA doesn't create single-view projects (#135). It does open existing ones. |
 
 ## Open questions
 
-1. **Version number.** New projects get `schema_version: 1` in `project.yaml` (`routes/project.py` `CreateNewProject`, migration 003). But the layout they get is today's layout, which `PathUtil` calls version 0, and `PathUtil.for_version(1)` raises `NotImplementedError`. Do we rename today's layout to version 1 and keep 0 for "unknown/old", or write 0 for new projects?
-2. **Single-view projects.** Keep LPA multiview-only for new projects, or support single-view the way the spec describes (no view part in filenames)?
-3. **Inference on videos outside the project.** The spec left this open. LPA's inference uses videos inside the project. If we allow outside videos, where do the predictions go, and how does the Viewer find them?
-4. **`paths/` types.** `paths/` imports `SessionKey` and the other keys from `lightning_pose.data.datatypes`, which only had them in Karan's fork. Define them in LPA, or ask for them in LP?
+1. **Version number.** New projects get `schema_version: 1` in `project.yaml` (`routes/project.py` `CreateNewProject`, migration 003). But the layout they get is today's layout, which `PathUtil` calls version 0, and `PathUtil.for_version(1)` raises `NotImplementedError`. Do we rename today's layout to version 1 and keep 0 for "unknown/old", or write 0 for new projects? (paninski-lab/lightning-pose-app#177)
+2. **Inference on videos outside the project.** The spec left this open. LPA's inference uses videos inside the project. If we allow outside videos, where do the predictions go, and how does the Viewer find them?
+3. **`paths/` types.** `paths/` imports `SessionKey` and the other keys from `lightning_pose.data.datatypes`, which only had them in Karan's fork. Define them in LPA, or ask for them in LP?
