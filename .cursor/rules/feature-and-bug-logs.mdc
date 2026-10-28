@@ -11,6 +11,7 @@ alwaysApply: true
 - Do not put code, data, or other non-markdown artifacts there.
 - Read the relevant plan before implementing; update it if the design changes.
 - When the plan describes a behavior, name the **one** test that covers it (the regression that matters—not every spec in the folder). See `.cursor/rules/lpa-web-ui-tests.mdc` for lean UI test policy.
+- A wording-only change has no test. Say "wording only, no test" instead of adding one.
 - Do not log bugfixes as feature plans.
 
 # BUGS.md
