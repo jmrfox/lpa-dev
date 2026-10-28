@@ -23,7 +23,7 @@ UI-only. No backend, RPC, or on-disk format changes. Stored view options (`local
 
 - `labeler-center-panel.component.spec.ts` "side panel": the button block comes after the Keypoints panel and before View options; Image size, Image brightness, Image contrast and Keypoint opacity have the new limits.
 - `skeleton-view-options.component.spec.ts`: slider `aria-label`s and text are Skeleton thickness / Skeleton opacity, no "Bone".
-- `project-skeleton.component.spec.ts`: the new sentence.
+- The settings-page sentence is wording only; its test was dropped in the test trim (`test/trim-low-value-specs`).
 
 ## Not done
 
