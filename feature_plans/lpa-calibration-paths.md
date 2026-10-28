@@ -16,7 +16,7 @@ paninski-lab/lightning-pose-app#173 (part 1 of 2). Principle 3 in `DESIGN_PRINCI
 `app_server/src/litpose_app/calibration_paths.py`:
 - `session_calibration_path(data_dir, session)` → `calibrations/<session>.toml`
 - `project_calibration_path(data_dir)` → `calibration.toml`
-- `calibration_backup_path(data_dir, session, when)` → `calibrations/backups/<session>_og-<YYYYmmdd-HHMMSS>.toml` (what bundle adjustment has always written)
+- `calibration_backup_path(data_dir, session, when)` → `calibrations/backups/<session>.<YYYYmmdd-HHMMSS>.toml`. Bundle adjustment used to write `<session>_og-<stamp>.toml`; Jordan dropped the `og` ("original"; every file in `backups/` is an old version) and chose a dot so the name doesn't look like `<session>_<view>`. Existing backups keep their names; nothing reads them. The dialog text says the new name (spec: `bundle-adjust-dialog.component.spec.ts` "names the backup file after a run").
 - `session_calibration_files(data_dir)` → `.toml` directly in `calibrations/`, sorted ignoring case; not `backups/`
 - `is_session_calibration(data_dir, path)`
 - `session_calibration_filename_issue(filename)`: the one session-id rule, used by rename and import

@@ -110,7 +110,7 @@ These are the spec's v1 layout changes. None are in LP. Each would need an LP ch
 |---|---|
 | `project.toml` | `project.yaml` |
 | Calibrations: `calibrations/default.toml` for the project | `calibration.toml` in the data dir (what LP reads) |
-| Calibration backups: `calibrations/backups/<session>_<time_ns>.toml` (the `PathResolver` section says `calibration_backups/<session>.<time_ns>.toml`, so the spec contradicts itself) | `calibrations/backups/<session>_og-<YYYYmmdd-HHMMSS>.toml` (#173) |
+| Calibration backups: `calibrations/backups/<session>_<time_ns>.toml` (the `PathResolver` section says `calibration_backups/<session>.<time_ns>.toml`, so the spec contradicts itself) | `calibrations/backups/<session>.<YYYYmmdd-HHMMSS>.toml` (#173; older backups are `<session>_og-<stamp>.toml`) |
 | One `videos/` folder | Any `videos*/` folder, nested allowed, with folders you can turn off |
 | Frames in `labeled-data/frames/<session>_<view>/frame_<8 digits>.png`, `selected_frames.txt` required | `labeled-data/<session>_<view>/`, any image name LP accepts |
 | Label CSVs in `labeled-data/labels/` | Data dir root (`LABEL_CSV_SCOPE`) |
