@@ -31,9 +31,13 @@ Test: `labeler-view-options.service.spec.ts` (with nothing saved, opacity starts
 
 Tests: `skeleton-view-options.component.spec.ts` (no pairs: off, disabled, no sliders, no change emitted; pairs again: the saved on shows); `labeler-center-panel.component.spec.ts` "shows Show skeleton off when the project defines no skeleton pairs". The Viewer page has no spec; it passes the same input.
 
-## Skeleton slider numbers (PR paninski-lab/lightning-pose-app#189)
+## Show slider numbers, green switches, Viewer layout (PR paninski-lab/lightning-pose-app#189)
 
-`app-skeleton-view-options` has a `showValues` input (default true). The Labeler passes false, so Skeleton thickness and Skeleton opacity show no number, matching brightness, contrast and keypoint opacity. The Viewer keeps the numbers. Test: `skeleton-view-options.component.spec.ts` "shows the thickness and opacity values unless showValues is off".
+- **Show slider numbers:** `showSliderNumbers` in `LabelerViewOptionsService` and `ViewerViewOptionsService` (`labeler-view-options.showSliderNumbers` / `viewer-view-options.showSliderNumbers` in localStorage, default off, in the umami payload). The switch sits under Pixel grid overlay in the Labeler and alone after the last divider in the Viewer. Every View options slider's number is behind it, and `app-skeleton-view-options` gets it through `showValues`. Jordan first asked for no numbers under the Labeler skeleton sliders, then for this switch instead. Labeler numbers: image size px, brightness and contrast to 2 decimals, keypoint opacity to 3, keypoint size and label size px.
+- **Green switches:** every `toggle` in the Labeler side panel and the Viewer View options uses `toggle-primary` (green in `dim`), like Pixel grid overlay. Show skeleton changed in the shared component, so the Viewer's did too.
+- **Viewer View options:** Image (video tile size), Keypoints (opacity, size, labels, label size), Skeleton, as `role="group"`s with dividers and the same `-mt-2` on Skeleton; then a divider and Show slider numbers. No temporal context, brightness or contrast in the Viewer. Not checked in the browser; no Viewer page spec.
+
+Tests: `labeler-view-options.service.spec.ts` "show slider numbers"; `labeler-center-panel.component.spec.ts` "Show slider numbers shows the View options values only while on" and "shows every switch in the side panel in the primary (green) style"; `skeleton-view-options.component.spec.ts` "shows the thickness and opacity values unless showValues is off".
 
 ## Tests
 
