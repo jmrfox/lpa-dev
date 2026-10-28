@@ -41,7 +41,7 @@ Current review tracker: [lpa-global-code-review.md](../../lpa-code-reviews/lpa-g
 - **Assert:** role and accessible name (`getByRole`-style queries, `aria-label`) and keyboard behavior. These are the contract for keyboard and screen-reader users.
 - **Do not assert:** tooltip (`data-tip`) wording, button copy, or class lists, unless that text or class is the fix.
 - A wording-only change (tip, button, help text) needs no new test. Say "wording only, no test" in the CHANGELOG / BUGS / feature-plan note.
-- `lightning-pose-app/AGENTS.md` says the same once paninski-lab/lightning-pose-app#188 is merged (part of [#159](https://github.com/paninski-lab/lightning-pose-app/issues/159)); until then this rule wins. If an existing spec asserts old copy, update or drop that assertion rather than leaving it red.
+- `lightning-pose-app/AGENTS.md` says the same (PR paninski-lab/lightning-pose-app#188). If an existing spec asserts old copy, update or drop that assertion rather than leaving it red.
 
 ## Per-spec scrutiny (during code review)
 
