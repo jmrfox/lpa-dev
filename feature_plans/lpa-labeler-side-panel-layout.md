@@ -31,6 +31,10 @@ Test: `labeler-view-options.service.spec.ts` (with nothing saved, opacity starts
 
 Tests: `skeleton-view-options.component.spec.ts` (no pairs: off, disabled, no sliders, no change emitted; pairs again: the saved on shows); `labeler-center-panel.component.spec.ts` "shows Show skeleton off when the project defines no skeleton pairs". The Viewer page has no spec; it passes the same input.
 
+## Skeleton slider numbers (PR paninski-lab/lightning-pose-app#189)
+
+`app-skeleton-view-options` has a `showValues` input (default true). The Labeler passes false, so Skeleton thickness and Skeleton opacity show no number, matching brightness, contrast and keypoint opacity. The Viewer keeps the numbers. Test: `skeleton-view-options.component.spec.ts` "shows the thickness and opacity values unless showValues is off".
+
 ## Tests
 
 - `labeler-center-panel.component.spec.ts` "side panel": the button block comes after the Keypoints panel and before View options; Image size, Image brightness, Image contrast and Keypoint opacity have the new limits.
