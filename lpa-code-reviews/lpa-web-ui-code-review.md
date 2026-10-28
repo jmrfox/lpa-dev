@@ -214,7 +214,7 @@ Order is intentional: **foundation → shared widgets → video → Labeler/View
 
 | PR | Scope |
 |----|--------|
-| **A** | W6: Delete or gut create-only `*.spec.ts` (~25 files); keep behavioral specs listed as **keep** in audit log. |
+| **A** | W6: Delete or gut create-only `*.spec.ts` (~25 files); keep behavioral specs listed as **keep** in audit log. **Done:** paninski-lab/lightning-pose-app#187. |
 | **B** | W1–W4: Wrapper removal (viewport, toast alias, `mc_util.c`, project key helper). |
 | **C** | P1-5 / P1-9: `SessionService` use `projectContext()`; surface `loadSessions` errors. |
 | **D** | Add 2–4 high-value tests only: `Pair` map keys, `csv-parser` fixture, optional `LoadingService` resolver spinner, optional `storeProjectInfo` signal update. |
@@ -227,67 +227,69 @@ One row per **spec file** (or per `it` if you need granularity). Link PR when ch
 
 | Spec file (under `web_ui/src/app/`) | Phase | Verdict | Rationale (one line) | PR |
 |-------------------------------------|-------|---------|----------------------|-----|
-| `global-error-handler.service.spec.ts` | 0 | trim | Drop `should be created`; merge into one `handleError` test that asserts `isLoading.set(false)` and `openDialog` (today only umami is asserted). | |
+| `global-error-handler.service.spec.ts` | 0 | trim | Drop `should be created`; merge into one `handleError` test that asserts `isLoading.set(false)` and `openDialog` (today only umami is asserted). | #187: `should create` removed. The dialog + loading-clear test was not added |
 | `global-error-handler.service.spec.ts` | 0 | keep | `should not crash if umami is not defined` guards prod-like env. | |
-| `global-error-handler.service.spec.ts` | 0 | remove | `umami.track` payload test is analytics detail, not user workflow—optional remove when trimming. | |
-| `loading.service.spec.ts` | 0 | remove | Sole `should be created` test; file adds no value. | |
+| `global-error-handler.service.spec.ts` | 0 | remove | `umami.track` payload test is analytics detail, not user workflow—optional remove when trimming. | #187 |
+| `loading.service.spec.ts` | 0 | remove | Sole `should be created` test; file adds no value. | #187 |
 | `loading.service.spec.ts` | 0 | add | One test: `ResolveStart` → `isContextLoading true`, `ResolveEnd` → false (drives shell spinner)—if we keep any LoadingService spec. | |
-| `rpc.service.spec.ts` | 1 | remove | Create-only; no assertion on URL/body. Optional **add**: one `HttpTestingController` test for POST `/app/v0/rpc/foo`. | |
-| `project-info.service.spec.ts` | 1 | remove | Create-only; triggers no `fetchContext` behavior. **Add** later: mock RPC, assert `storeProjectInfo` updates `projectContext` signal. | |
-| `toast.service.spec.ts` | 1 | remove | Create-only. Optional **add**: dismiss / duplicate-content behavior if we keep ToastService at all. | |
-| `csv-parser.service.spec.ts` | 1 | remove | Create-only. **Add**: one fixture CSV for `getBodyParts` or `parsePredictionFile` (real parsing risk). | |
-| `error-dialog.service.spec.ts` | 1 | remove | Create-only (Phase 1 adjacent). | |
+| `rpc.service.spec.ts` | 1 | remove | Create-only; no assertion on URL/body. Optional **add**: one `HttpTestingController` test for POST `/app/v0/rpc/foo`. | #187 |
+| `project-info.service.spec.ts` | 1 | remove | Create-only; triggers no `fetchContext` behavior. **Add** later: mock RPC, assert `storeProjectInfo` updates `projectContext` signal. | #187 |
+| `toast.service.spec.ts` | 1 | remove | Create-only. Optional **add**: dismiss / duplicate-content behavior if we keep ToastService at all. | #187 |
+| `csv-parser.service.spec.ts` | 1 | remove | Create-only. **Add**: one fixture CSV for `getBodyParts` or `parsePredictionFile` (real parsing risk). | #187 |
+| `error-dialog.service.spec.ts` | 1 | remove | Create-only (Phase 1 adjacent). | #187 |
 | `modelconf.spec.ts` | 1 | keep | `mc_util.createdAt` paths are non-obvious EKS vs normal—worth keeping. | |
 | `skeleton-validity.spec.ts` | 2 | keep | Canonical skeleton rules (pairs, thickness, multiview)—single owner. | |
 | `skeleton-bones.spec.ts` | 2 | keep | Bone geometry / segment math. | |
 | `skeleton-overlay.component.spec.ts` | 2 | keep | Paint-layer behavior tied to overlay. | |
 | `skeleton-view-options.component.spec.ts` | 2 | keep | View-options + localStorage thickness. | |
 | `dense-listbox.component.spec.ts` | 2 | keep | Keyboard + selection behavior. | |
-| `dense-listbox.component.spec.ts` | 2 | trim | Drop lone `should create` if present. | |
+| `dense-listbox.component.spec.ts` | 2 | trim | Drop lone `should create` if present. | #187: `should create` and "3 items projected" removed |
 | `path-editable.component.spec.ts` | 2 | keep | Edit/commit paths beyond create. | |
-| `path-editable.component.spec.ts` | 2 | trim | Drop create-only `it` if redundant. | |
-| `terminal-command.component.spec.ts` | 2 | keep | Copy UI + `isCopied` rendering. | |
-| `terminal-command.component.spec.ts` | 2 | trim | Drop `should create`. | |
+| `path-editable.component.spec.ts` | 2 | trim | Drop create-only `it` if redundant. | #187 |
+| `terminal-command.component.spec.ts` | 2 | keep | Copy UI + `isCopied` rendering. | #187 removed the `"Copied!"` test (it only checked a `title` attribute) |
+| `terminal-command.component.spec.ts` | 2 | trim | Drop `should create`. | #187 |
 | `keypoint-container.component.spec.ts` | 2 | keep | Skeleton SVG z-order before keypoints. | |
-| `pair.spec.ts` | 2 | remove | Constructor truthy only—no `toMapKey` coverage. | |
+| `pair.spec.ts` | 2 | remove | Constructor truthy only—no `toMapKey` coverage. | #187 |
 | `pair.spec.ts` | 2 | add | Round-trip `toMapKey` / parse (Viewer column keys). | PR D |
-| `video-utils.spec.ts` | 2 | remove | Misnamed FineVideoService create-only. | |
-| `infra/color.service.spec.ts` | 2 | remove | Create-only. | |
-| `utils/daisy-form-control.directive.spec.ts` | 2 | remove | Create-only directive instance. | |
-| `highlight.directive.spec.ts` | 2 | remove | Create-only. | |
+| `video-utils.spec.ts` | 2 | remove | Misnamed FineVideoService create-only. | #187 |
+| `infra/color.service.spec.ts` | 2 | remove | Create-only. | #187 |
+| `utils/daisy-form-control.directive.spec.ts` | 2 | remove | Create-only directive instance. | #187 |
+| `highlight.directive.spec.ts` | 2 | remove | Create-only. | #187 |
 | `video-player-state.spec.ts` | 3 | keep | Frame/time clamp and seek math. | |
 | `video-player-keyboard.spec.ts` | 3 | keep | Pure keyboard → playback action map. | |
 | `video-player-controls.component.spec.ts` | 3 | keep | Transport bar, slider max, keyboard, extract frame—high value. | |
-| `video-player-controls.component.spec.ts` | 3 | trim | `creates the transport bar` is weak if only truthy—optional merge into first real test. | |
+| `video-player-controls.component.spec.ts` | 3 | trim | `creates the transport bar` is weak if only truthy—optional merge into first real test. | #187: now "shows frame 0, time 0.00 and the duration on load"; tip and help wording checks dropped |
 | `labeler-page.component.spec.ts` | 4 | keep | Stub children; extract-frames dialog wiring template. | |
-| `labeler-center-panel.component.spec.ts` | 4 | remove | Create-only. | |
-| `label-file-fetcher.service.spec.ts` | 4 | remove | Create-only. | |
-| `extract-frames-dialog.component.spec.ts` | 4 | remove | Create-only. | |
+| `labeler-center-panel.component.spec.ts` | 4 | remove | Create-only. | #187: create-only `describe` removed; the file now has temporal context and side panel tests |
+| `label-file-fetcher.service.spec.ts` | 4 | remove | Create-only. | #187: `should create` removed; the file keeps its other tests |
+| `extract-frames-dialog.component.spec.ts` | 4 | remove | Create-only. | #187 |
 | _(no files)_ | 5 | add | Optional: unit test `pureComputeWidgetModels` with mocked predictions—only if Viewer regressions. | |
-| `home-page.component.spec.ts` | 6 | remove | Create-only + real HTTP risk (P0-8). | |
-| `project-home-page.component.spec.ts` | 6 | remove | Create-only. | |
-| `project-settings.component.spec.ts` | 6 | remove | Create-only; skeleton covered by `project-skeleton`. | |
-| `project-skeleton.component.spec.ts` | 6 | keep | Add/remove bones + error paths in settings. | |
-| `label-file-picker.component.spec.ts` | 6 | remove | Create-only. | |
+| `home-page.component.spec.ts` | 6 | remove | Create-only + real HTTP risk (P0-8). | n/a: the file now has Show details tests (#181) and no `should create` |
+| `project-home-page.component.spec.ts` | 6 | remove | Create-only. | #187 |
+| `project-settings.component.spec.ts` | 6 | remove | Create-only; skeleton covered by `project-skeleton`. | #187: `should create` removed; the file keeps its other tests |
+| `project-skeleton.component.spec.ts` | 6 | keep | Add/remove bones + error paths in settings. | #187 removed the settings-page sentence test (wording only) |
+| `label-file-picker.component.spec.ts` | 6 | remove | Create-only. | #187 |
 | `model-detail.component.spec.ts` | 7 | keep | TensorBoard / EKS / header copy and paths. | |
-| `model-detail.component.spec.ts` | 7 | trim | Drop `should create` if other tests cover bootstrap. | |
-| `create-model-dialog.component.spec.ts` | 7 | keep | `imgaug_3d` / multiview config patch tests. | |
-| `create-eks-model-dialog.component.spec.ts` | 7 | keep | Submit disabled/enabled vs model count. | |
-| `create-eks-model-dialog.component.spec.ts` | 7 | trim | Drop `should create`. | |
-| `models-page.component.spec.ts` | 7 | remove | Create-only. | |
-| `models-list.component.spec.ts` | 7 | remove | Create-only. | |
-| `model-rename-dialog.component.spec.ts` | 7 | remove | Create-only. | |
-| `model-delete-dialog.component.spec.ts` | 7 | remove | Create-only. | |
-| `model-inference-dialog.component.spec.ts` | 7 | remove | Create-only. | |
-| `bundle-adjust-dialog.component.spec.ts` | 7 | remove | Create-only. | |
-| `video-file-table.component.spec.ts` | 8 | remove | Create-only. | |
-| `session-import.component.spec.ts` | 8 | remove | Create-only. | |
-| `loading-bar.component.spec.ts` | 8 | remove | Create-only. | |
-| `error-dialog.component.spec.ts` | 8 | remove | Create-only (service spec separate in Phase 1). | |
+| `model-detail.component.spec.ts` | 7 | trim | Drop `should create` if other tests cover bootstrap. | #187 |
+| `create-model-dialog.component.spec.ts` | 7 | keep | `imgaug_3d` / multiview config patch tests. | #187: `should create` removed |
+| `create-eks-model-dialog.component.spec.ts` | 7 | keep | Submit disabled/enabled vs model count. | #187 removed the 2-model case (0 and 1 cover the rule) |
+| `create-eks-model-dialog.component.spec.ts` | 7 | trim | Drop `should create`. | #187 |
+| `models-page.component.spec.ts` | 7 | remove | Create-only. | #187 |
+| `models-list.component.spec.ts` | 7 | remove | Create-only. | #187 |
+| `model-rename-dialog.component.spec.ts` | 7 | remove | Create-only. | #187 |
+| `model-delete-dialog.component.spec.ts` | 7 | remove | Create-only. | #187 |
+| `model-inference-dialog.component.spec.ts` | 7 | remove | Create-only. | #187 |
+| `bundle-adjust-dialog.component.spec.ts` | 7 | remove | Create-only. | #187: `should create` removed; the file keeps its other tests |
+| `video-file-table.component.spec.ts` | 8 | remove | Create-only. | #187 |
+| `session-import.component.spec.ts` | 8 | remove | Create-only. | #187: `should create` removed; the file keeps its other tests |
+| `loading-bar.component.spec.ts` | 8 | remove | Create-only. | #187 |
+| `error-dialog.component.spec.ts` | 8 | remove | Create-only (service spec separate in Phase 1). | #187 |
 
 Example verdicts: `remove` shallow create test; `merge` duplicate skeleton rule into `skeleton-validity.spec.ts`; `keep` keyboard seek spec.
 
 **W6 delete batch (create-only files):** ~22 files marked `remove` above (plus Phase 0–1 service specs). After PR A, suite ≈ **24** behavioral spec files.
+
+**Done in paninski-lab/lightning-pose-app#187 (2026-10-28):** 22 create-only files deleted, `should create` removed from 12 more, and five copy/duplicate cases dropped. The suite went from 61 spec files / 268 tests to 39 / 229. Several files this audit marked `remove` had grown real tests by then and were trimmed instead. The **add** rows (PR D) are still open.
 
 ---
 
@@ -295,7 +297,7 @@ Example verdicts: `remove` shallow create test; `merge` duplicate skeleton rule 
 
 | ID | Phase | Severity | Summary | Tracking |
 |----|-------|----------|---------|----------|
-| P0-1 | 0 | low | `loading.service.spec.ts` is create-only; remove file or replace with resolver spinner behavior test. | Test audit |
+| P0-1 | 0 | low | `loading.service.spec.ts` is create-only; remove file or replace with resolver spinner behavior test. | Test audit; file deleted in #187 |
 | P0-2 | 0 | low | `global-error-handler.service.spec.ts` should assert dialog + loading clear, not only Umami; drop create-only `it`. | Test audit |
 | P0-3 | 0 | low | Navbar project home control uses `href="/"` (full page load) instead of `routerLink`. | |
 | P0-4 | 0 | info | No `app.component.spec.ts` — OK for lean suite; query-param settings flow is the main gap if we add shell tests later (Phase 6). | |
@@ -303,7 +305,7 @@ Example verdicts: `remove` shallow create test; `merge` duplicate skeleton rule 
 | P0-6 | 0 | info | `LoadingService` router subscription not tied to `DestroyRef` (root singleton—acceptable but never torn down). | |
 | P0-7 | 0 | info | `src/proxy.conf.json` proxies `/app` → `:8080` for dev; production serves same origin from FastAPI. | |
 | P0-8 | 0 | med | Resolver + real routes trigger real HTTP in tests that use `provideRouter(routes)` without mocks—see activated_route doc; fix in Phase 1/9, not new AppComponent tests. | [activated_route_provider_error.md](lightning-pose-app/web_ui/docs/activated_route_provider_error.md) |
-| P1-1 | 1 | low | Five Phase-1 service specs are create-only (`rpc`, `project-info`, `toast`, `csv-parser`, `error-dialog`)—remove or replace per audit log. | Test audit |
+| P1-1 | 1 | low | Five Phase-1 service specs are create-only (`rpc`, `project-info`, `toast`, `csv-parser`, `error-dialog`)—remove or replace per audit log. | Test audit; files deleted in #187 |
 | P1-2 | 1 | low | `modelconf.spec.ts` is useful—keep. | |
 | P1-3 | 1 | info | No `session.service.spec.ts`—OK for lean suite; session grouping is add candidate not boilerplate. | |
 | P1-4 | 1 | med | `SessionService` + home/feature tests hit real HTTP when `ProjectInfoService` / `RpcService` not mocked (P0-8). | W5 / Phase 9 |
@@ -318,33 +320,33 @@ Example verdicts: `remove` shallow create test; `merge` duplicate skeleton rule 
 | P1-13 | 1 | info | `csv-parser.service.ts` has real parsing logic but no behavioral spec—gap. | Test audit |
 | P1-14 | 1 | info | `enabled-views-keypoints` setters: thin but OK as subject encapsulation. | |
 | P2-1 | 2 | med | `Pair` map keys used in Viewer DataFrame columns—no spec for `toMapKey` / parsing. | PR D |
-| P2-2 | 2 | low | `video-utils.spec.ts` tests wrong service name; delete file. | W6 |
-| P2-3 | 2 | low | `color.service.spec.ts` create-only—delete. | W6 |
+| P2-2 | 2 | low | `video-utils.spec.ts` tests wrong service name; delete file. | W6, done in #187 |
+| P2-3 | 2 | low | `color.service.spec.ts` create-only—delete. | W6, done in #187 |
 | P2-4 | 2 | info | Most `components/*` rely on Storybook only—aligned with lean policy. | |
 | P2-5 | 2 | info | Skeleton split across validity / bones / overlay / view-options is the right ownership model. | |
-| P2-6 | 2 | low | `daisy-form-control` + `highlight` directive specs are create-only—delete. | W6 |
+| P2-6 | 2 | low | `daisy-form-control` + `highlight` directive specs are create-only—delete. | W6, done in #187 |
 | P3-1 | 3 | low | No `FineVideoService` behavioral spec—OK unless URL/session bugs recur. | |
 | P3-2 | 3 | info | `video-player-controls` spec is one of the strongest in the app—keep as reference. | |
 | P3-3 | 3 | info | `video-tile` / ffprobe panel untested—acceptable (thin templates). | |
 | P4-1 | 4 | info | `labeler-page` spec is the page-test pattern to copy (stub children, assert dialog inputs). | |
-| P4-2 | 4 | low | Labeler center panel / fetcher / extract-frames specs are create-only—W6. | W6 |
+| P4-2 | 4 | low | Labeler center panel / fetcher / extract-frames specs are create-only—W6. | W6, done in #187 |
 | P4-3 | 4 | info | `image-label-widget` + view-options service untested—integration-heavy; defer. | |
 | P4-4 | 4 | info | Labeler shares video transport specs with Viewer (Phase 3). | |
 | P5-1 | 5 | info | No specs under `viewer/`—transport covered by `video-player-*`. | |
 | P5-2 | 5 | low | `viewer-center-panel` widget/prediction rebuild logic is add-candidate, not boilerplate component test. | PR D (optional) |
 | P5-3 | 5 | info | Viewer view-options + session import mirror Labeler patterns; stories/manual QA for now. | |
 | P6-1 | 6 | med | `home-page` spec risks real HTTP without `ProjectInfoService` mock (P0-8). | W6 |
-| P6-2 | 6 | low | Project home / settings / label-file-picker create-only specs—W6. | W6 |
+| P6-2 | 6 | low | Project home / settings / label-file-picker create-only specs—W6. | W6, done in #187 |
 | P6-3 | 6 | info | `project-skeleton` spec is the right place for settings skeleton UX tests. | |
 | P6-4 | 6 | info | Path dialogs (`add-existing`, `update-paths`) stories-only—OK. | |
 | P7-1 | 7 | info | `model-detail` + `create-model-dialog` carry real training/inference UI risk—keep. | |
-| P7-2 | 7 | low | Models page/list + rename/delete/inference/bundle-adjust create-only—W6. | W6 |
+| P7-2 | 7 | low | Models page/list + rename/delete/inference/bundle-adjust create-only—W6. | W6, done in #187 |
 | P7-3 | 7 | info | `create-eks-model-dialog` has meaningful submit-enable tests—trim create `it` only. | |
 | P7-4 | 7 | info | Unified inference plan may consolidate dialogs later—not blocking test cleanup. | [unified-inference-plan](lightning-pose-app/docs/design/unified-inference-plan.md) |
 | P8-1 | 8 | med | `video-import.store` multiview grouping in `items` computed has no spec—add on bug recurrence. | |
-| P8-2 | 8 | low | Import/session/loading-bar/error-dialog component specs create-only—W6. | W6 |
+| P8-2 | 8 | low | Import/session/loading-bar/error-dialog component specs create-only—W6. | W6, done in #187 |
 | P8-3 | 8 | info | `terminal-output` display-only—no spec needed. | |
-| P9-1 | 9 | med | ~35 spec files still contain a create `it`; ~22 files are create-only—batch delete PR A. | W6 |
+| P9-1 | 9 | med | ~35 spec files still contain a create `it`; ~22 files are create-only—batch delete PR A. | W6, done in #187 |
 | P9-2 | 9 | info | Dialog open/close inconsistency documented separately—not solved in test pass. | dialog_inconsistency_problem |
 | P9-3 | 9 | info | Suggested merge order: W6 → W1–W4 → SessionService fixes → 2–4 additive tests. | Recommended PR batches |
 
@@ -369,3 +371,4 @@ _Add rows as reviews complete. Link PRs or GitHub issues in **Tracking**._
 | 2026-09-29 | Phase 0 review complete (bootstrap, routes, app shell, global error handler). |
 | 2026-09-29 | Phase 1 review complete (core services, domain types, service specs); wrapper backlog W1–W5. |
 | 2026-09-29 | Phases 2–9 complete; full test audit log; findings P2–P9; W6 batch + PR batches A–D. |
+| 2026-10-28 | W6 / PR A done in paninski-lab/lightning-pose-app#187; audit log **PR** column filled in. |

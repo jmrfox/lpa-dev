@@ -54,6 +54,11 @@ For each `it()` / `describe()` in the phase’s `*.spec.ts` files, ask:
 
 Record decisions in the review tracker: **keep** · **trim** (fewer cases) · **remove** · **add** (gap) · **merge** (into helper spec).
 
+## When you remove a test
+
+- If it was the last `it()` in a `describe`, remove the `describe` too. Karma fails the whole run on "describe with no children".
+- Remove helpers and variables only that test used. `ng lint` reports the unused ones.
+
 ## When you change behavior
 
 - Update or add **one** spec that names the regression you fear—not a spec per file touched.
@@ -63,7 +68,10 @@ Record decisions in the review tracker: **keep** · **trim** (fewer cases) · **
 
 ```bash
 cd lightning-pose-app/web_ui && npx ng lint
-npx ng test --no-watch --browsers=ChromeHeadless --include=<path/to/spec.ts>
+lpa-dev test src/app/<path/to/spec.ts>   # one spec; path relative to web_ui
+lpa-dev test                             # full UI suite
 ```
+
+In this workspace, run Karma through `lpa-dev test`. It puts Node 26 on `PATH` and finds Chromium for `CHROME_BIN`; plain `npx ng test` fails here with "No binary for ChromeHeadless". The LPA docs keep `npx ng test` for other contributors.
 
 Run only specs for code you changed unless the change is shared (`components/`, routing, global styles).

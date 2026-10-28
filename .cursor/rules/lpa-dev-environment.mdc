@@ -25,7 +25,7 @@ Follow **one** section below—never mix conda envs or paths.
 
 - Conda: **`poseapp`** (`conda activate poseapp`). One-time: `bash scripts/wsl-one-time-setup.sh`.
 - Node 26 via nvm (`~/.nvm` typical). Source `shell/lpa-dev.zsh` in `~/.zshrc`; run **`lpa-dev setup`** per new terminal.
-- UI tests: set `CHROME_BIN` to Chromium/Chrome if `lpa-dev test` cannot find a browser.
+- UI tests: run `lpa-dev test [spec]`, not plain `npx ng test` (which cannot find a browser here). Set `CHROME_BIN` only if `lpa-dev test` cannot find Chromium/Chrome either.
 
 ## Both
 
