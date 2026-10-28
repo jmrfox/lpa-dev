@@ -41,10 +41,10 @@ Karan's note:
 What that means for us:
 - Objects passed around in memory (`Session`, `MVLabelFile`) carry the key **and** the full path of each per-view file.
 - The UI and the entry points (RPC routes, CLI commands) turn keys into paths. Code below them opens the paths it's given and doesn't rebuild filenames.
-- Each naming rule is written **once**. On the backend that place is `app_server/src/litpose_app/paths/`: one `ResourceUtil` per kind of file, with `get_path` (key → path) and `parse_path` (path → key). It matches the spec's `PathResolver`, kept inside LPA.
+- Each naming rule is written **once**, in a small module named for the kind of file: `session_view.py` (and `utils/session-view.ts` in the UI) for `<session>_<view>` names, `calibration_paths.py` for calibrations. Plain functions, no key types. Karan's `paths/` package (`PathUtil`, one `ResourceUtil` per kind of file, modeled on the spec's `PathResolver`) is unused and stays that way; reviving it needed key types LP never had and machinery the rules don't need.
 - The UI doesn't copy a backend rule (a glob pattern, a folder name, a character set). It asks the backend for the list, or for a check.
 
-Where we are: `paths/` exists but nothing calls it, and most of its methods are unfinished. The File Manager and several routes write the rules out themselves. Fixing that for label CSVs and calibrations is paninski-lab/lightning-pose-app#173. The session/view split is one rule, the last `_`, in `session_view.py` and `utils/session-view.ts` (paninski-lab/lightning-pose-app#174). The same applies to the other kinds of file afterwards.
+Where we are: the backend calibration routes use `calibration_paths.py`. The File Manager panels still write the label CSV and calibration rules out themselves; that is the second half of paninski-lab/lightning-pose-app#173. The session/view split is one rule, the last `_`, in `session_view.py` and `utils/session-view.ts` (paninski-lab/lightning-pose-app#174). The same applies to the other kinds of file afterwards.
 
 *Status: adopted, partly in place.*
 
@@ -74,7 +74,7 @@ Session names, view names, keypoint names, label file names and model names show
 
 The project's layout version is stored in its config. A change to the layout gets a numbered migration in `app_server/src/litpose_app/migrations/`, and is never done as a silent rewrite (see `AGENTS.md`). A migration must leave the user's labels, models and videos readable by LP.
 
-*Status: in place for migrations. Today's layout is version 1, which is what `CreateNewProject` and migration 003 already write; 0 or a missing field means a project written before the field existed, with the same layout. The spec's layout, if ever built, would be version 2. `PathUtil.for_version(1)` still raises until paninski-lab/lightning-pose-app#177 lands.*
+*Status: in place for migrations. Today's layout is version 1, which is what `CreateNewProject` and migration 003 already write; 0 or a missing field means a project written before the field existed, with the same layout. The spec's layout, if ever built, would be version 2. Nothing reads the number yet (`paths/` is unused), so no code change is needed until something does (paninski-lab/lightning-pose-app#177).*
 
 ## 7. A model folder is enough to run inference
 
@@ -122,4 +122,3 @@ These are the spec's v1 layout changes. None are in LP. Each would need an LP ch
 ## Open questions
 
 1. **Inference on videos outside the project.** The spec left this open. LPA's inference uses videos inside the project. If we allow outside videos, where do the predictions go, and how does the Viewer find them?
-2. **`paths/` types.** `paths/` imports `SessionKey` and the other keys from `lightning_pose.data.datatypes`, which only had them in Karan's fork. Define them in LPA, or ask for them in LP?
