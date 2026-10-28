@@ -25,6 +25,12 @@ Labeler keypoints start at opacity 0.5 (was 0.15): `ColorService.defaultOpacity`
 
 Test: `labeler-view-options.service.spec.ts` (with nothing saved, opacity starts at 0.5 and Reset returns to 0.5; a saved 0.2 is kept).
 
+## Show skeleton with no pairs (PR paninski-lab/lightning-pose-app#189)
+
+`app-skeleton-view-options` has a `noPairs` input. Labeler (`labeler-center-panel`) and Viewer (`viewer-page`) set it from `skeletonPairs(projectInfo.skeleton).length === 0`. With no pairs the switch shows off and is disabled, with the hint "No skeleton pairs defined. Add them in project settings." The stored `*.showSkeleton` flag is not written, so it still applies in projects with pairs. Disabled rather than merely off, because turning it on would draw nothing.
+
+Tests: `skeleton-view-options.component.spec.ts` (no pairs: off, disabled, no sliders, no change emitted; pairs again: the saved on shows); `labeler-center-panel.component.spec.ts` "shows Show skeleton off when the project defines no skeleton pairs". The Viewer page has no spec; it passes the same input.
+
 ## Tests
 
 - `labeler-center-panel.component.spec.ts` "side panel": the button block comes after the Keypoints panel and before View options; Image size, Image brightness, Image contrast and Keypoint opacity have the new limits.
