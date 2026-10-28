@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Viewer and Labeler group files by a view found anywhere in the name (fixed)
+
+**Status:** Fixed on `fix/session-view-naming` (paninski-lab/lightning-pose-app#174; PR paninski-lab/lightning-pose-app#182).
+
+**Symptoms:** With views `cam1` and `cam10`, `trial_cam10.mp4` was grouped as session `trial_*0` with view `cam1`. With views `top` and `side`, `stop_top.mp4` became `s*p_top` and was not grouped with `stop_side.mp4`. Predictions were filed the same way.
+
+**Cause:** Three rules. Import, File Manager and EKS used the last `_`. Inference used "ends with `_<view>`". The UI (`session.service.ts` `groupFilesByView` and prediction parsing, `directory-viewer`, the Labeler frame key) and the project list card counts (`routes/project.py`) used the first project view found anywhere in the name and replaced it with `*`.
+
+**Fix:** One rule, the last `_` (what LP uses for `labeled-data/<session>_<view>/` and calibrations): `app_server/src/litpose_app/session_view.py` and `web_ui/src/app/utils/session-view.ts`. Every site above now calls them. A name whose last part isn't a project view is its own session with view unknown, as before. Decided with Jordan: no fallback for view names containing `_`; those stop grouping and #176 warns about them. Keys keep the `<session>_*` shape, so `autolabelSessionKey` and label file `*` templates are unchanged.
+
+**Tests:** `session.service.spec.ts` (the cam1/cam10, stop_top and prediction cases fail on the old code); `session-view.spec.ts`; `test_session_view.py`; `test_inference.py`.
+
 ## Extracted frame paths saved with \ on Windows (fixed)
 
 **Status:** Fixed on `fix/frame-paths-posix` (paninski-lab/lightning-pose-app#175; PR paninski-lab/lightning-pose-app#179).

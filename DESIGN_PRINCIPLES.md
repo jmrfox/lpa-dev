@@ -44,7 +44,7 @@ What that means for us:
 - Each naming rule is written **once**. On the backend that place is `app_server/src/litpose_app/paths/`: one `ResourceUtil` per kind of file, with `get_path` (key → path) and `parse_path` (path → key). It matches the spec's `PathResolver`, kept inside LPA.
 - The UI doesn't copy a backend rule (a glob pattern, a folder name, a character set). It asks the backend for the list, or for a check.
 
-Where we are: `paths/` exists but nothing calls it, and most of its methods are unfinished. The File Manager and several routes write the rules out themselves. Fixing that for label CSVs and calibrations is paninski-lab/lightning-pose-app#173. The session/view split from a video name has three different versions today (paninski-lab/lightning-pose-app#174). The same applies to the other kinds of file afterwards.
+Where we are: `paths/` exists but nothing calls it, and most of its methods are unfinished. The File Manager and several routes write the rules out themselves. Fixing that for label CSVs and calibrations is paninski-lab/lightning-pose-app#173. The session/view split is one rule, the last `_`, in `session_view.py` and `utils/session-view.ts` (paninski-lab/lightning-pose-app#174). The same applies to the other kinds of file afterwards.
 
 *Status: adopted, partly in place.*
 
@@ -68,7 +68,7 @@ Session names, view names, keypoint names, label file names and model names show
 - Two keys that differ only in letter case (`Mouse1`, `mouse1`) are the same file on macOS and Windows. Warn about it.
 - Keep names well under 255 characters. The spec suggests about 100.
 
-*Status: adopted. The view-name and case checks are not built (paninski-lab/lightning-pose-app#176).*
+*Status: adopted. New projects refuse `_` in view names; existing ones warn. Names that differ only in case warn (paninski-lab/lightning-pose-app#176).*
 
 ## 6. Layout changes go through a version and a migration
 
