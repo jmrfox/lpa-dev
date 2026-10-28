@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Keypoint label outline has pointed spikes (fixed)
+
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#185 (branch `fix/context-reset-label-outline`; no issue; reported by Jordan with a screenshot). Follows the earlier "Small keypoint labels show black spiky shapes" fix.
+
+**Symptoms:** Zoomed in, names like `L1A` and `L2C` had pointed black shapes sticking out of the outline at sharp letter corners.
+
+**Cause:** The outline was `-webkit-text-stroke` on HTML text. Chrome joins the stroke at sharp corners with miters, and HTML text ignores `stroke-linejoin` and `stroke-miterlimit` (checked: both still spiked in a 22x render). A 16-direction `text-shadow` ring has no spikes, but its offsets are rounded to whole pixels before the zoom scale, so its edge showed 1px steps.
+
+**Fix:** Names are SVG `<text>` in their own layer above the markers (`keypoint-labels`), with `stroke-linejoin: round` and `paint-order: stroke fill`; stroke width is `2 x LABEL_OUTLINE_EM` (0.125em outside the letters, as before). Placement is unchanged; labels are measured with `getBBox()` in image coordinates instead of a DOM range and the zoom scale.
+
+**Tests:** `keypoint-container.component.spec.ts` "labels"; `keypoint-label-placement.spec.ts` "label outline". Before/after render at 22x in headless Chromium (standalone page, not the app).
+
 ## Viewer and Labeler group files by a view found anywhere in the name (fixed)
 
 **Status:** Fixed on `fix/session-view-naming` (paninski-lab/lightning-pose-app#174; PR paninski-lab/lightning-pose-app#182).

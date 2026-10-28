@@ -30,6 +30,10 @@ Showing: current
   - None of the frames around the current one load (every slot except the current frame fails), for example frames imported without their neighbors: "Context frames were not found." The widget reports this as `contextFramesMissing`; the center panel reads it from the primary widget. The end of a video is not this case, since the earlier frames still load.
 - Near the edges of a video a slot shows the frame LP uses: frame 0 for slots before the start, the current frame for a frame that does not exist (past the end). See the #161 entry in `BUGS.md`.
 
+### Back to the current frame (PR paninski-lab/lightning-pose-app#185)
+
+While a context frame is shown (another slot, or playing), a warning-colored `restart_alt` button appears to the right of the dots, tip "Back to the current frame" (`tooltip-left`, since a centered tip is cut off by the panel edge). One click calls `resetTemporalContext()`: playback stops and slot 2 is shown with its keypoints. It is bright on purpose, as a reminder that the keypoints are hidden. Tests: `labeler-center-panel.component.spec.ts` "shows a Back to the current frame button only away from the current frame" and "shows the Back button while playing and stops playback with one click".
+
 ## Code
 
 - `labeler/temporal-context.ts`: `contextImgPaths` (#161), plus `stepContextSlot`, `playContextSlot`, `CONTEXT_SLOT_LABELS`.
