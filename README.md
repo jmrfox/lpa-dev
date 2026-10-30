@@ -9,7 +9,7 @@ Git snapshot of the **Lightning Studio** home directory used for Lightning Pose 
 - `.claude/rules/` — symlinks to `.cursor/rules/*.mdc` so Claude Code loads the same rules
 - `bin/` — `lpa-dev`, `gitstatus`, `lpa-stop`
 - `shell/` — `lpa-dev.zsh` (zsh `setup` function and PATH)
-- `scripts/` — `wsl-one-time-setup.sh` (WSL toolchain bootstrap)
+- `scripts/` — `wsl-one-time-setup.sh` (WSL toolchain bootstrap), `fit_mirror_mouse_calibration.py` (a calibration.toml for mirror-mouse-separate, fitted to its labels, for testing nonlinear EKS)
 - `feature_plans/`, `BUGS.md`, `lpa-code-reviews/`
 - `project.yaml`, `.lightningignore`, `.lightning_studio/` hooks
 - Editor snippets: `.vscode/settings.json`, `.angular-config.json`, `.storybook/`
