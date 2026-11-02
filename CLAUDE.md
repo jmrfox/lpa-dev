@@ -27,6 +27,7 @@ Claude Code is the primary agent. Cursor is used afterwards to review Claude's c
 - `DESIGN_PRINCIPLES.md` — how LPA names, places and resolves project files; read before changing file layout or path code
 - `feature_plans/` — feature designs (one `.md` each)
 - `BUGS.md` — bug log with status and covering test
+- `UPSTREAM_CHANGES.md` — changes we plan to propose to EKS and LP, with what LPA does meanwhile
 - `lpa-code-reviews/` — code-review trackers for LPA
 - `bin/lpa-dev`, `shell/lpa-dev.zsh` — dev helpers (`lpa-dev setup`, `run`, `test`, `gitstatus`)
 
