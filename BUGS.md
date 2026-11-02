@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## File Manager flags LP metric files in video_preds (fixed)
+
+**Status:** Fixed on `fix/file-manager-metric-csvs` (no issue; reported by Jordan on `mirror-mouse-separate/models/my_model/video_preds/180605_000_bot_temporal_norm.csv`).
+
+**Symptoms:** File Manager's model check warned "Unknown view: norm" for every `<video>_temporal_norm.csv` in `video_preds/`. The same would happen for `_pca_singleview_error.csv`, `_pca_multiview_error.csv`, `_pixel_error.csv` ("Unknown view: error"), `_bbox.csv`, and "Unexpected subdirectory: labeled_videos".
+
+**Cause:** `_validate_one_model` (`routes/validate_files.py`) read every CSV in `video_preds/` as `<session>_<view>.csv`, splitting at the last `_`. LP writes metric files beside each prediction (`lightning_pose/metrics.py`), `litpose create_bbox` writes `<video>_bbox.csv` there, and labeled videos go in `video_preds/labeled_videos/` (`api/model.py`). The Viewer already skipped these by suffix (`session.service.ts` `loadPredictionIndex`); File Manager had no list.
+
+**Fix:** File Manager knows LP's suffixes (`_LP_PREDICTION_SIDE_SUFFIXES`) and the `labeled_videos` folder. A name is checked as-is first; only if that fails is the LP suffix removed and the rest checked, so a view named `bbox` still works and a metric file for an unknown view is still reported. The suffix list is written once in the backend; the Viewer keeps its own broader list (#173 covers putting naming rules in one place).
+
+**Tests:** `tests/routes/test_validate_project_files.py::test_validate_models_accepts_lp_metric_bbox_and_labeled_video_files` (fails on the old code), `test_validate_models_view_named_like_an_lp_suffix`. Checked on `mirror-mouse-separate`: the models check reports no issues for `my_model`.
+
 ## Keypoint label outline has pointed spikes (fixed)
 
 **Status:** Fixed in PR paninski-lab/lightning-pose-app#185 (branch `fix/context-reset-label-outline`; no issue; reported by Jordan with a screenshot). Follows the earlier "Small keypoint labels show black spiky shapes" fix.
