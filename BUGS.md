@@ -13,7 +13,7 @@ This is a log for tracking bugs.
 Found by reading the code; not reported by a user.
 
 **Cause:** `rename_labeled_data_folder` (`routes/rename_project_files.py`):
-- Searched `Config.LABEL_CSV_SCOPE` ("root", `data_dir/*.csv`) since #139/#173-era changes. 2.4.2.3 searched `**/*.csv`.
+- Searched `Config.LABEL_CSV_SCOPE` ("root", `data_dir/*.csv`) since paninski-lab/lightning-pose-app#139 (`57b9c3f`). 2.4.2.3 searched `**/*.csv`.
 - Never rewrote `*.unlabeled.jsonl` queues (older bug).
 - Rewrote each CSV in place with `write_text`, so a failure mid-write could leave a half-written label file.
 
