@@ -1,6 +1,6 @@
 # EKS: linear for every project, nonlinear with calibration (LPA #150)
 
-Branch: `feat/eks-linear-nonlinear` in `lightning-pose-app` (PR paninski-lab/lightning-pose-app#192).
+Merged in PR paninski-lab/lightning-pose-app#192 (branch `feat/eks-linear-nonlinear`), 2026-11-02.
 
 ## What the user sees
 

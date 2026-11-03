@@ -4,7 +4,7 @@ This is a log for tracking bugs.
 
 ## File Manager flags LP metric files in video_preds (fixed)
 
-**Status:** Fixed on `fix/file-manager-metric-csvs` (no issue; reported by Jordan on `mirror-mouse-separate/models/my_model/video_preds/180605_000_bot_temporal_norm.csv`).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#191 (branch `fix/file-manager-metric-csvs`; no issue; reported by Jordan on `mirror-mouse-separate/models/my_model/video_preds/180605_000_bot_temporal_norm.csv`).
 
 **Symptoms:** File Manager's model check warned "Unknown view: norm" for every `<video>_temporal_norm.csv` in `video_preds/`. The same would happen for `_pca_singleview_error.csv`, `_pca_multiview_error.csv`, `_pixel_error.csv` ("Unknown view: error"), `_bbox.csv`, and "Unexpected subdirectory: labeled_videos".
 
