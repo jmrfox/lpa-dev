@@ -2,6 +2,26 @@
 
 This is a log for tracking bugs.
 
+## Refresh during a save ignores the save (fixed)
+
+**Status:** Fixed on `fix/review-followups` (found in the 2.4.4.0 release review; no issue).
+
+**Symptoms:** Pressing Refresh in the Labeler while a save was still being written, which is easy on a slow Studio connection, could reload the label file before the save landed. When the save then finished, the Labeler ignored it: the frame kept its old labels on screen and stayed in the remaining list, and **Save and next** didn't move on. The save itself was on disk.
+
+Found by reading the code; not reported by a user.
+
+**Cause:**
+- Refresh was enabled during a save.
+- `LabelerPageComponent.handleSaved` compared the saved label file with the loaded one by object, and Refresh had replaced the loaded one with an equal new object.
+
+**Fix:**
+- The center panel reports saving (`savingChange` output), and the page keeps Refresh off while a save runs.
+- `handleSaved` matches the label file by key.
+
+**Tests:**
+- `labeler-page.component.spec.ts`: "keeps Refresh off while a save is being written" and "applies a save that finishes after a Refresh (Save and next still moves on)". Both fail on the old code.
+- `labeler-center-panel.component.spec.ts`: "reports saving while a save is written, and done when it finishes".
+
 ## Renaming a labeled-data folder misses some label CSVs and every queue (fixed)
 
 **Status:** Fixed in PR paninski-lab/lightning-pose-app#200 (branch `fix/review-rename-and-split`; found in the 2.4.4.0 release review; no issue).
