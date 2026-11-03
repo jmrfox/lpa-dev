@@ -9,6 +9,7 @@ Branch: `feat/labeler-refresh` in `lightning-pose-app`.
 - The open label file and frame stay open. A labeled frame keeps its view; an unlabeled frame opens on its first view, as it does when opened normally.
 - If any loaded frame has unsaved keypoint edits (`mvf(frame).hasRevertibleEdits`, the check Revert uses), a dialog asks first: **Cancel** keeps the edits, **Discard and refresh** reloads. Edits live in the loaded frames, not only the open one, so every frame is checked.
 - If the open frame or label file is gone after the reload, it is closed and a warning toast says so.
+- If the reload fails (a network drop, a CSV that can't be read), what was shown stays and an error toast gives the reason. This was added during review: a failure used to reject silently.
 - Nothing is written to disk.
 
 ## How
@@ -22,7 +23,7 @@ Branch: `feat/labeler-refresh` in `lightning-pose-app`.
 
 ## Tests
 
-- `labeler-page.component.spec.ts` "Refresh": reloads label files and labels (a new frame appears), keeps the open frame and bumps `imageReload`; with unsaved edits it asks first, Cancel keeps them, Discard reloads; a removed frame (navigates to the label file, warning) and a removed label file (navigates to none, warning) are closed without an error.
+- `labeler-page.component.spec.ts` "Refresh": reloads label files and labels (a new frame appears), keeps the open frame and bumps `imageReload`; with unsaved edits it asks first, Cancel keeps them, Discard reloads; a removed frame (navigates to the label file, warning) and a removed label file (navigates to none, warning) are closed without an error. A failed reload keeps the open frame, shows an error toast and re-enables the button.
 - `image-label-widget.component.spec.ts` "loads the images again, and retries failed ones, after the Labeler is refreshed".
 - `labeler-center-panel.component.spec.ts` "keeps the open view when the frame is replaced by a reloaded copy (Refresh)". This guards existing center panel behavior that Refresh relies on; it passes without the Refresh change.
 - Full UI suite: 261 passed. Not tried in the browser.
