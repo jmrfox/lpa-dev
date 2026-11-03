@@ -1,6 +1,6 @@
 # Create Model: more options, recommended settings, project default config (LPA #190)
 
-Branch: `feat/create-model-options` in `lightning-pose-app`.
+Merged in PR paninski-lab/lightning-pose-app#202 (branch `feat/create-model-options`), 2026-11-03.
 
 ## Decisions (Jordan, 2026-11-03)
 
