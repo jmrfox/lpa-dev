@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Picking the same video twice transcodes it twice (fixed)
+
+**Status:** Fixed on `fix/duplicate-video-import` (paninski-lab/lightning-pose-app#87, reported in April 2026).
+
+**Symptoms:** In **Upload a new session**, picking videos again (for example after "Missing views: Cam-C") added every picked file as a new row, so a video already listed appeared twice. **Import** then transcoded both copies of the same file at once, and sometimes showed an ffmpeg error, although the videos ended up transcoded.
+
+**Cause:** `VideoImportStore.addFiles` (`web_ui/src/app/video-import/video-import.store.ts`) appended every local file. Each row's id is its file name, and uploads are stored by name, so two rows were the same upload and the same transcode. `addServerFiles` already skipped a path that was listed.
+
+**Fix:** `addFiles` skips a file whose name is already listed, like `addServerFiles`. The first copy stays in the list.
+
+**Tests:** `video-import.store.spec.ts` "picking a video that is already listed does not add it again (#87)" and "transcodes each picked video once after picking the same videos twice". Both fail on the old code (3 rows instead of 2; 4 transcodes instead of 2).
+
 ## File Manager flags LP metric files in video_preds (fixed)
 
 **Status:** Fixed in PR paninski-lab/lightning-pose-app#191 (branch `fix/file-manager-metric-csvs`; no issue; reported by Jordan on `mirror-mouse-separate/models/my_model/video_preds/180605_000_bot_temporal_norm.csv`).
