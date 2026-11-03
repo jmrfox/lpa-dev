@@ -71,6 +71,8 @@ Found by reading the code; not reported by a user.
 
 **Tests:** `listed-views.spec.ts`. The Viewer page has no spec, so the template's use of `listedViews` is not covered. Full UI suite passes (256).
 
+**Later:** On `fix/review-followups` (release review), the placeholder left `allViews` altogether: `allViews` is only the project views, `UNKNOWN_VIEW` is added where files are grouped and in the Viewer's own selection, and `listed-views.ts` was removed. Covered by `project-info.service.spec.ts`.
+
 ## Picking the same video twice transcodes it twice (fixed)
 
 **Status:** Fixed in PR paninski-lab/lightning-pose-app#196 (branch `fix/duplicate-video-import`; paninski-lab/lightning-pose-app#87, reported in April 2026).
