@@ -2,6 +2,18 @@
 
 This is a log for tracking bugs.
 
+## Viewer lists an "unknown" view in multiview projects (fixed)
+
+**Status:** Fixed on `fix/viewer-hide-unknown-view` (no issue; reported by Jordan).
+
+**Symptoms:** In a multiview project, the Viewer's **Views** panel listed every project view and also "unknown", with a checkbox.
+
+**Cause:** `ProjectInfoService.setAllViews` appends `'unknown'` to `allViews` (since `fe38fc6`, June 2025). Other code relies on it: files whose name doesn't end in a project view are grouped under view `'unknown'` (`session.service.ts`), and Extract Frames treats `allViews().length > 1` as multiview. The Viewer's Views panel looped over `allViews` directly. Videos with an unknown view are kept out of sessions (`ungroupedVideos`), so the row never matched a video tile.
+
+**Fix:** The panel lists `listedViews(allViews)` (`viewer/viewer-page/listed-views.ts`), which drops `'unknown'`. `allViews` and the view selection are unchanged, so `'unknown'` stays selected as before and nothing else changes.
+
+**Tests:** `listed-views.spec.ts`. The Viewer page has no spec, so the template's use of `listedViews` is not covered. Full UI suite passes (256).
+
 ## Picking the same video twice transcodes it twice (fixed)
 
 **Status:** Fixed on `fix/duplicate-video-import` (paninski-lab/lightning-pose-app#87, reported in April 2026).
