@@ -9,6 +9,7 @@ Merged in PR paninski-lab/lightning-pose-app#197 (branch `feat/labeler-refresh`)
 - The open label file and frame stay open. A labeled frame keeps its view; an unlabeled frame opens on its first view, as it does when opened normally.
 - If any loaded frame has unsaved keypoint edits (`mvf(frame).hasRevertibleEdits`, the check Revert uses), a dialog asks first: **Cancel** keeps the edits, **Discard and refresh** reloads. Edits live in the loaded frames, not only the open one, so every frame is checked.
 - If the open frame or label file is gone after the reload, it is closed and a warning toast says so.
+- The button's tip opens below and to the left (`tooltip-bottom tooltip-end`, `before:max-w-56`): centered, it was cut off by the left panel's right edge (Jordan, after #197; fixed in PR paninski-lab/lightning-pose-app#199, layout only, no test).
 - If the reload fails (a network drop, a CSV that can't be read), what was shown stays and an error toast gives the reason. This was added during review: a failure used to reject silently.
 - Nothing is written to disk.
 
