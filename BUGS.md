@@ -4,7 +4,7 @@ This is a log for tracking bugs.
 
 ## Refresh during a save ignores the save (fixed)
 
-**Status:** Fixed on `fix/review-followups` (found in the 2.4.4.0 release review; no issue).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#201 (branch `fix/review-followups`; found in the 2.4.4.0 release review; no issue).
 
 **Symptoms:** Pressing Refresh in the Labeler while a save was still being written, which is easy on a slow Studio connection, could reload the label file before the save landed. When the save then finished, the Labeler ignored it: the frame kept its old labels on screen and stayed in the remaining list, and **Save and next** didn't move on. The save itself was on disk.
 
@@ -71,7 +71,7 @@ Found by reading the code; not reported by a user.
 
 **Tests:** `listed-views.spec.ts`. The Viewer page has no spec, so the template's use of `listedViews` is not covered. Full UI suite passes (256).
 
-**Later:** On `fix/review-followups` (release review), the placeholder left `allViews` altogether: `allViews` is only the project views, `UNKNOWN_VIEW` is added where files are grouped and in the Viewer's own selection, and `listed-views.ts` was removed. Covered by `project-info.service.spec.ts`.
+**Later:** In PR paninski-lab/lightning-pose-app#201 (release review), the placeholder left `allViews` altogether: `allViews` is only the project views, `UNKNOWN_VIEW` is added where files are grouped and in the Viewer's own selection, and `listed-views.ts` was removed. Covered by `project-info.service.spec.ts`.
 
 ## Picking the same video twice transcodes it twice (fixed)
 
