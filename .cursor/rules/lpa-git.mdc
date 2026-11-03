@@ -10,7 +10,6 @@ alwaysApply: true
 Every change in **`lightning-pose-app/`** — code, scripts, CI, config, and docs (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `DEV.md`, `AGENTS.md`, etc.) — uses the same workflow:
 
 - New short-lived branch from `origin/main`, then a PR into `main`. One branch per feature, bugfix, or doc bundle. Combining is fine when the changes touch the same part of the repo, and one PR may close several related issues (list each with `Closes #N`).
-- Do not open PRs from `jmrfox/dev`.
 - Do not `git push` to `main`.
 
 ## `lpa-dev` (this repo)
