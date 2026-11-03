@@ -4,7 +4,7 @@ This is a log for tracking bugs.
 
 ## Renaming a labeled-data folder misses some label CSVs and every queue (fixed)
 
-**Status:** Fixed on `fix/review-rename-and-split` (found in the 2.4.4.0 release review; no issue).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#200 (branch `fix/review-rename-and-split`; found in the 2.4.4.0 release review; no issue).
 
 **Symptoms:** After renaming a folder in `labeled-data/` in File Manager:
 - A label CSV that wasn't directly in the data directory kept the old image paths, for example `labeled-data/<session>/CollectedData_<scorer>.csv` (DeepLabCut layout) or a CSV in a subfolder. LP training on it can't find the images.
@@ -29,7 +29,7 @@ Found by reading the code; not reported by a user.
 
 ## A negative Train prob freezes the Create Model dialog (fixed)
 
-**Status:** Fixed on `fix/review-rename-and-split` (found in the 2.4.4.0 release review; no issue).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#200 (branch `fix/review-rename-and-split`; found in the 2.4.4.0 release review; no issue).
 
 **Symptoms:** With a label file chosen, typing a negative number into **Train prob** hung the browser tab.
 
