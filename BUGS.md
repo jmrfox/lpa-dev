@@ -2,6 +2,43 @@
 
 This is a log for tracking bugs.
 
+## Renaming a labeled-data folder misses some label CSVs and every queue (fixed)
+
+**Status:** Fixed on `fix/review-rename-and-split` (found in the 2.4.4.0 release review; no issue).
+
+**Symptoms:** After renaming a folder in `labeled-data/` in File Manager:
+- A label CSV that wasn't directly in the data directory kept the old image paths, for example `labeled-data/<session>/CollectedData_<scorer>.csv` (DeepLabCut layout) or a CSV in a subfolder. LP training on it can't find the images.
+- Frames still in the labeling queue kept the old folder name, so the Labeler showed "image could not be loaded" for them.
+
+Found by reading the code; not reported by a user.
+
+**Cause:** `rename_labeled_data_folder` (`routes/rename_project_files.py`):
+- Searched `Config.LABEL_CSV_SCOPE` ("root", `data_dir/*.csv`) since #139/#173-era changes. 2.4.2.3 searched `**/*.csv`.
+- Never rewrote `*.unlabeled.jsonl` queues (older bug).
+- Rewrote each CSV in place with `write_text`, so a failure mid-write could leave a half-written label file.
+
+**Fix:**
+- Rewrites every CSV under the data directory except the model folders (`_label_csvs`, scope "tree" on purpose) and every queue (`_label_queues`, `_rewrite_queue`; only changed lines are rewritten, `\` paths are matched as `/`).
+- Stages all new files and commits them with `replace_files`. On failure, every file keeps its content and the folder is moved back.
+- Holds `label_files_lock`, so it can't interleave with a save or Extract Frames.
+- Reads and writes with `newline=""`, so CRLF is kept.
+
+**Tests:** `tests/routes/test_rename_project_files.py`:
+- `..._rewrites_label_csvs_outside_the_data_root`, `..._rewrites_unlabeled_queues` and `..._keeps_crlf_line_endings` fail on the old code.
+- `..._failed_commit_changes_nothing` fails there because the old module has no `replace_files` to patch.
+
+## A negative Train prob freezes the Create Model dialog (fixed)
+
+**Status:** Fixed on `fix/review-rename-and-split` (found in the 2.4.4.0 release review; no issue).
+
+**Symptoms:** With a label file chosen, typing a negative number into **Train prob** hung the browser tab.
+
+**Cause:** `posePcaUnavailableReason` (`create-model-dialog.component.ts`) skipped only a falsy train fraction, and the form emits values while they are invalid. `minFramesForPosePca` (`pose-pca.ts`) then searched for a frame count where `lpTrainFrameCount` reaches 2 × keypoints, which never happens when the train fraction is negative.
+
+**Fix:** The check runs only when train and val prob are positive. `minFramesForPosePca` returns Infinity for a train fraction that isn't positive instead of searching.
+
+**Tests:** `create-model-dialog.component.spec.ts` "does not hang or block Pose PCA while a negative Train prob is typed"; `pose-pca.spec.ts` "is Infinity, without searching, when the train fraction is not positive". On the old code these hang rather than fail, so that wasn't run.
+
 ## Viewer lists an "unknown" view in multiview projects (fixed)
 
 **Status:** Fixed in PR paninski-lab/lightning-pose-app#198 (branch `fix/viewer-hide-unknown-view`; no issue; reported by Jordan).
