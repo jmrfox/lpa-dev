@@ -4,7 +4,7 @@ This is a log for tracking bugs.
 
 ## Viewer lists an "unknown" view in multiview projects (fixed)
 
-**Status:** Fixed on `fix/viewer-hide-unknown-view` (no issue; reported by Jordan).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#198 (branch `fix/viewer-hide-unknown-view`; no issue; reported by Jordan).
 
 **Symptoms:** In a multiview project, the Viewer's **Views** panel listed every project view and also "unknown", with a checkbox.
 
@@ -16,7 +16,7 @@ This is a log for tracking bugs.
 
 ## Picking the same video twice transcodes it twice (fixed)
 
-**Status:** Fixed on `fix/duplicate-video-import` (paninski-lab/lightning-pose-app#87, reported in April 2026).
+**Status:** Fixed in PR paninski-lab/lightning-pose-app#196 (branch `fix/duplicate-video-import`; paninski-lab/lightning-pose-app#87, reported in April 2026).
 
 **Symptoms:** In **Upload a new session**, picking videos again (for example after "Missing views: Cam-C") added every picked file as a new row, so a video already listed appeared twice. **Import** then transcoded both copies of the same file at once, and sometimes showed an ffmpeg error, although the videos ended up transcoded.
 

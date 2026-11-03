@@ -1,6 +1,6 @@
 # Labeler Refresh button (LPA #165)
 
-Branch: `feat/labeler-refresh` in `lightning-pose-app`.
+Merged in PR paninski-lab/lightning-pose-app#197 (branch `feat/labeler-refresh`), 2026-11-03.
 
 ## What the user sees
 
