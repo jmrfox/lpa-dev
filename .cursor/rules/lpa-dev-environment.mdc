@@ -1,11 +1,11 @@
 ---
-description: lpa-dev environment (Lightning Studio vs WSL)
+description: lpa-dev environment (Lightning Studio vs WSL / Linux)
 alwaysApply: true
 ---
 
 # lpa-dev environment
 
-Workspace root is the **lpa-dev** repo (`LPA_DEV_ROOT`); **lightning-pose** and **lightning-pose-app** are sibling clones inside it. Helpers: `bin/lpa-dev`, `shell/lpa-dev.zsh` (zsh `setup` function).
+Workspace root is the **lpa-dev** repo (`LPA_DEV_ROOT`); **lightning-pose** and **lightning-pose-app** are sibling clones inside it. Helpers: `bin/lpa-dev`, `shell/lpa-dev.sh` (bash/zsh `setup` function). One-time setup on any machine: `lpa-dev init` (`bin/lpa-dev-init`; `--check` changes nothing).
 
 Registered projects: **`~/.lightning-pose/projects.toml`** on every machine (paths inside the file are machine-specific). Optional small test projects under **`$LPA_DEV_ROOT/LPProjects/`** (gitignored; do not commit)—e.g. `LPProjects/mirror-mouse-fused-tiny` and `LPProjects/mirror-mouse-fused` (single-view fused).
 
@@ -14,7 +14,7 @@ Registered projects: **`~/.lightning-pose/projects.toml`** on every machine (pat
 Follow **one** section below—never mix conda envs or paths.
 
 - **Lightning Studio** if the workspace root is `/teamspace/studios/this_studio` (often `$HOME` = lpa-dev).
-- **WSL / local Linux** otherwise (e.g. `/home/jordan/repos/lpa-dev`).
+- **WSL / local Linux** otherwise (e.g. `/home/jordan/repos/lpa-dev`, or Jetstream `/home/exouser/repos/lpa-dev`, where conda comes from `module load miniforge`, there is no GPU, and the env lives on a volume recorded in `.lpa-dev.local`).
 
 ## Lightning Studio
 
@@ -23,8 +23,8 @@ Follow **one** section below—never mix conda envs or paths.
 
 ## WSL / local Linux
 
-- Conda: **`poseapp`** (`conda activate poseapp`). One-time: `bash scripts/wsl-one-time-setup.sh`.
-- Node 26 via nvm (`~/.nvm` typical). Source `shell/lpa-dev.zsh` in `~/.zshrc`; run **`lpa-dev setup`** per new terminal.
+- Conda: **`poseapp`**. One-time: `lpa-dev init`.
+- Node 26 via nvm (`~/.nvm` typical). Source `shell/lpa-dev.sh` in `~/.bashrc` or `~/.zshrc`; run **`lpa-dev setup`** per new terminal (it activates `poseapp`).
 - UI tests: run `lpa-dev test [spec]`, not plain `npx ng test` (which cannot find a browser here). Set `CHROME_BIN` only if `lpa-dev test` cannot find Chromium/Chrome either.
 
 ## Both

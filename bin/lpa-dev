@@ -6,7 +6,8 @@
 #        lpa-dev test [spec]               # Karma, ChromeHeadless
 #        lpa-dev status                    # node, version, ports
 #        lpa-dev gitstatus                 # git status for LP and LPA
-#        lpa-dev setup                     # Node 26, editable sync, UI deps; see shell/lpa-dev.zsh
+#        lpa-dev init [--check|--dry-run]  # one-time machine setup (bin/lpa-dev-init)
+#        lpa-dev setup                     # conda env, Node 26, editable sync, UI deps; see shell/lpa-dev.sh
 #        lpa-dev kill|stop                 # stop dev and packaged app processes
 #        lpa-dev print-node26              # print the Node 26 bin directory
 #        lpa-dev sync-editable             # reinstall app_server if version drifted
@@ -61,8 +62,11 @@ Usage: lpa-dev <command>
 
 Basic commands:
 
-  setup                   Select Node 26 in this terminal and clear Studio node/npm/npx
-                          functions. Reinstalls the editable app only when pyproject.toml
+  init [options]          One-time setup for a new machine: clones, conda env, torch,
+                          editable installs, nvm and Node, web_ui deps. Asks before
+                          acting; rerun any time. See: lpa-dev init --help
+  setup                   Activate the conda env and select Node 26 in this terminal,
+                          and clear Studio node/npm/npx functions. Reinstalls the editable app only when pyproject.toml
                           disagrees with the installed version. Installs web_ui
                           dependencies when node_modules/.bin/ng is missing or older
                           than package-lock.json. Does not start the app.
@@ -367,7 +371,10 @@ cmd_test() {
 cmd_status() {
   local port pids desired installed node_ver
   require_python
-  apply_node26 2>/dev/null || true
+  # apply_node26 exits when Node 26 is missing; status should still report.
+  if [[ -x "$(node26_bin)/node" ]]; then
+    apply_node26
+  fi
   if command -v node >/dev/null 2>&1; then
     node_ver="$(node -v 2>/dev/null || true)"
   else
@@ -488,12 +495,13 @@ case "$cmd" in
   status) cmd_status "$@" ;;
   gitstatus) cmd_gitstatus ;;
   kill|stop) cmd_kill ;;
+  init) exec "$LPA_DEV_ROOT/bin/lpa-dev-init" "$@" ;;
   print-node26) node26_bin ;;
   sync-editable) cmd_sync_editable ;;
   sync-ui) cmd_sync_ui ;;
   setup)
     echo "lpa-dev setup changes the current terminal, so it has to run as a shell function." >&2
-    echo "Open a new terminal, or source your shell startup file (~/.zshrc or ~/.bashrc)." >&2
+    echo "Source shell/lpa-dev.sh from ~/.bashrc or ~/.zshrc (lpa-dev init offers to), then open a new terminal." >&2
     echo "Then: lpa-dev setup" >&2
     exit 1
     ;;

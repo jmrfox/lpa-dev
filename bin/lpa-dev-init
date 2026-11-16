@@ -1,0 +1,516 @@
+#!/usr/bin/env bash
+# One-time machine setup for lpa-dev. Safe to rerun: each step checks first and
+# skips work that is already done. Called as `lpa-dev init` (or directly, since
+# a fresh machine may not have zsh yet).
+#
+# What it never does:
+#   - run sudo without asking, or edit ~/.bashrc / ~/.zshrc without asking
+#   - run `conda init`, touch the conda base env, or create envs on Lightning Studio
+#   - pull, reset, or delete anything in existing clones
+#   - replace an installed torch build
+set -euo pipefail
+
+LPA_DEV_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LP_ROOT="$LPA_DEV_ROOT/lightning-pose"
+LPA_ROOT="$LPA_DEV_ROOT/lightning-pose-app"
+LP_URL="https://github.com/paninski-lab/lightning-pose.git"
+LPA_URL="https://github.com/paninski-lab/lightning-pose-app.git"
+# Per-machine choices (gitignored), as KEY=value lines. Read, never sourced.
+LOCAL_CONF="$LPA_DEV_ROOT/.lpa-dev.local"
+NVM_VERSION="v0.40.3"
+PYTHON_VERSION="3.11"
+STUDIO_ROOT="/teamspace/studios/this_studio"
+# Space needed on the drive holding $HOME (GB), measured on Jetstream: torch CPU +
+# lightning-pose deps (DALI, jax, opencv x3) come to ~6 GB in the env, plus the conda
+# package cache, pip build temp, Node, and node_modules.
+MIN_FREE_GB_CPU=10
+MIN_FREE_GB_CUDA=18
+MIN_FREE_GB_APP_ONLY=3
+
+usage() {
+  cat <<'EOF'
+Usage: lpa-dev init [options]
+
+One-time setup for a new machine. Checks everything, prints a plan, and asks
+before doing anything. Rerun it any time; finished steps are skipped.
+
+Steps (each only if needed):
+  1. Clone lightning-pose and lightning-pose-app into the lpa-dev repo
+  2. Install missing system tools with apt (asks separately; needs sudo)
+  3. Create the conda env (poseapp; Lightning Studio uses cloudspace and never creates one).
+     Pass --env /some/volume/poseapp to put it on another drive.
+  4. Install torch: CPU build when no NVIDIA GPU is visible, else the default CUDA build
+  5. Editable installs: lightning-pose, then lightning-pose-app[dev]
+  6. pre-commit hooks in lightning-pose-app
+  7. nvm and the Node version in web_ui/.nvmrc (nvm is told not to edit shell files)
+  8. web_ui dependencies (npm ci)
+  9. Add `source .../shell/lpa-dev.sh` to your shell startup file (asks separately)
+
+Options:
+  --check            Print what is installed and what is missing. Changes nothing.
+  --dry-run          Print the plan and stop. Changes nothing.
+  -y, --yes          Do not ask before the plan. Still skips apt and shell-file edits
+                     unless --apt / --edit-rc are given.
+  --apt              Allow the apt step without asking.
+  --edit-rc          Allow the shell-file step without asking.
+  --env NAME|PATH    Conda env name, or an absolute path for an env on another drive
+                     (its package cache goes next to it). Default: poseapp; cloudspace
+                     on Lightning Studio. Saved in .lpa-dev.local so `lpa-dev setup`
+                     and later runs use it. LPA_CONDA_ENV overrides the saved value.
+  --torch MODE       auto (default), cpu, cuda, or skip.
+  --skip-lp          Do not install torch or lightning-pose. The app and its tests run
+                     without them; training and `litpose` commands do not. Use on small
+                     machines (LP + torch need about 7 GB more disk).
+  --skip-disk-check  Do not stop when free disk space looks too small.
+  -h, --help         Show this help.
+
+Prerequisite: conda on PATH (Miniforge). On HPC/Jetstream: `module load miniforge`.
+EOF
+}
+
+# ---------- options ----------
+MODE=run
+ASSUME_YES=0
+ALLOW_APT=0
+ALLOW_RC=0
+TORCH_MODE=auto
+SKIP_DISK=0
+SKIP_LP=0
+ENV_NAME=""
+ENV_FROM_FLAG=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check) MODE=check ;;
+    --dry-run) MODE=dry-run ;;
+    -y|--yes) ASSUME_YES=1 ;;
+    --apt) ALLOW_APT=1 ;;
+    --edit-rc) ALLOW_RC=1 ;;
+    --env) ENV_NAME="${2:?--env needs a name or path}"; ENV_FROM_FLAG=1; shift ;;
+    --env=*) ENV_NAME="${1#--env=}"; ENV_FROM_FLAG=1 ;;
+    --torch) TORCH_MODE="${2:?--torch needs a mode}"; shift ;;
+    --torch=*) TORCH_MODE="${1#--torch=}" ;;
+    --skip-disk-check) SKIP_DISK=1 ;;
+    --skip-lp) SKIP_LP=1; TORCH_MODE=skip ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+case "$TORCH_MODE" in auto|cpu|cuda|skip) ;; *) echo "--torch must be auto, cpu, cuda, or skip" >&2; exit 2 ;; esac
+
+# ---------- output helpers ----------
+if [[ -t 1 ]]; then B=$'\e[1m'; G=$'\e[32m'; Y=$'\e[33m'; R=$'\e[31m'; N=$'\e[0m'; else B= G= Y= R= N=; fi
+ok()   { printf '  %sok%s    %s\n' "$G" "$N" "$*"; }
+todo() { printf '  %stodo%s  %s\n' "$Y" "$N" "$*"; }
+bad()  { printf '  %sfail%s  %s\n' "$R" "$N" "$*"; }
+note() { printf '  %s\n' "$*"; }
+step() { printf '\n%s==> %s%s\n' "$B" "$*" "$N"; }
+die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
+
+confirm() { # confirm "question" -> 0 for yes. Default is no.
+  local reply
+  [[ -t 0 ]] || return 1
+  read -r -p "$1 [y/N] " reply || return 1
+  [[ "$reply" == [yY] || "$reply" == [yY][eE][sS] ]]
+}
+
+# ---------- detection ----------
+[[ "$(id -u)" -ne 0 ]] || die "Run as your normal user, not root."
+
+PLATFORM=linux
+if [[ "$(uname -s)" == Darwin ]]; then PLATFORM=macos
+elif [[ -d "$STUDIO_ROOT" ]]; then PLATFORM=studio
+elif grep -qi microsoft /proc/version 2>/dev/null; then PLATFORM=wsl
+fi
+
+local_conf_get() { # local_conf_get KEY -> value from .lpa-dev.local, or nothing
+  [[ -f "$LOCAL_CONF" ]] || return 0
+  sed -n "s/^$1=//p" "$LOCAL_CONF" | tail -1
+}
+SAVED_ENV="$(local_conf_get LPA_CONDA_ENV)"
+if [[ -z "$ENV_NAME" ]]; then ENV_NAME="${LPA_CONDA_ENV:-$SAVED_ENV}"; fi
+if [[ -z "$ENV_NAME" ]]; then
+  if [[ "$PLATFORM" == studio ]]; then ENV_NAME=cloudspace; else ENV_NAME=poseapp; fi
+fi
+[[ "$ENV_NAME" != base ]] || die "Refusing to install into the conda base env."
+ENV_IS_PATH=0
+if [[ "$ENV_NAME" == */* ]]; then
+  [[ "$ENV_NAME" == /* ]] || die "--env path must be absolute: $ENV_NAME"
+  ENV_NAME="${ENV_NAME%/}"
+  ENV_IS_PATH=1
+  [[ -d "$(dirname "$ENV_NAME")" ]] || die "Parent folder of $ENV_NAME does not exist (is the volume mounted?)."
+fi
+
+find_conda() {
+  local c
+  if [[ -n "${CONDA_EXE:-}" && -x "$CONDA_EXE" ]]; then echo "$CONDA_EXE"; return; fi
+  if c="$(command -v conda 2>/dev/null)" && [[ -x "$c" ]]; then echo "$c"; return; fi
+  for c in "$HOME/miniforge3/bin/conda" "$HOME/mambaforge/bin/conda" "$HOME/miniconda3/bin/conda" "$HOME/anaconda3/bin/conda" /opt/conda/bin/conda; do
+    [[ -x "$c" ]] && { echo "$c"; return; }
+  done
+  return 1
+}
+CONDA="$(find_conda || true)"
+
+env_prefix() { # prints the env's prefix, or nothing
+  if ((ENV_IS_PATH)); then
+    [[ -x "$ENV_NAME/bin/python" ]] && echo "$ENV_NAME"
+    return 0
+  fi
+  [[ -n "$CONDA" ]] || return 0
+  "$CONDA" env list 2>/dev/null | awk -v n="$ENV_NAME" '$1 == n { print $NF }'
+}
+ENV_PREFIX="$(env_prefix)"
+ENV_PY="${ENV_PREFIX:+$ENV_PREFIX/bin/python}"
+BASE_PREFIX=""
+[[ -n "$CONDA" ]] && BASE_PREFIX="$("$CONDA" info --base 2>/dev/null || true)"
+
+has_gpu() { command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; }
+if [[ "$TORCH_MODE" == auto ]]; then
+  if has_gpu; then TORCH_KIND=cuda; else TORCH_KIND=cpu; fi
+else
+  TORCH_KIND="$TORCH_MODE"
+fi
+
+if [[ -z "${NVM_DIR:-}" ]]; then
+  if [[ -d "$LPA_DEV_ROOT/.nvm" ]]; then NVM_DIR="$LPA_DEV_ROOT/.nvm"; else NVM_DIR="$HOME/.nvm"; fi
+fi
+NODE_MAJOR=""
+[[ -f "$LPA_ROOT/web_ui/.nvmrc" ]] && NODE_MAJOR="$(tr -d '[:space:]v' < "$LPA_ROOT/web_ui/.nvmrc")"
+node_bin_dir() { # newest installed node for $NODE_MAJOR under nvm
+  local d last=""
+  [[ -n "$NODE_MAJOR" ]] || return 0
+  for d in "$NVM_DIR"/versions/node/v"$NODE_MAJOR".*/bin; do [[ -x "$d/node" ]] && last="$d"; done
+  echo "$last"
+}
+
+py_has() { [[ -n "$ENV_PY" && -x "$ENV_PY" ]] && "$ENV_PY" -c "import $1" >/dev/null 2>&1; }
+editable_src() { # editable_src DIST -> prints the source dir of an editable install
+  [[ -n "$ENV_PY" && -x "$ENV_PY" ]] || return 0
+  "$ENV_PY" - "$1" <<'PY' 2>/dev/null || true
+import json, sys
+from importlib import metadata
+from urllib.parse import unquote, urlparse
+try:
+    d = metadata.distribution(sys.argv[1])
+except metadata.PackageNotFoundError:
+    sys.exit(0)
+raw = d.read_text("direct_url.json")
+if raw:
+    info = json.loads(raw)
+    if info.get("dir_info", {}).get("editable"):
+        print(unquote(urlparse(info["url"]).path))
+PY
+}
+same_dir() { [[ -d "$1" && -d "$2" && "$(cd "$1" && pwd -P)" == "$(cd "$2" && pwd -P)" ]]; }
+
+free_gb() { df -Pk "$1" 2>/dev/null | awk 'NR==2 { printf "%d", $4 / 1048576 }'; }
+# Folder the env (and, for a path env, its package cache) will live in.
+env_parent() {
+  if ((ENV_IS_PATH)); then dirname "$ENV_NAME"; else echo "$HOME"; fi
+}
+same_fs() { [[ "$(df -P "$1" | awk 'NR==2 {print $1}')" == "$(df -P "$2" | awk 'NR==2 {print $1}')" ]]; }
+
+APT_WANT=(zsh lsof ffmpeg git curl)
+apt_missing() {
+  local p out=()
+  for p in "${APT_WANT[@]}"; do command -v "$p" >/dev/null 2>&1 || out+=("$p"); done
+  echo "${out[*]:-}"
+}
+
+find_chrome() {
+  local c
+  for c in "${CHROME_BIN:-}" /usr/bin/chromium-browser /usr/bin/chromium /usr/bin/google-chrome /usr/bin/google-chrome-stable /snap/bin/chromium; do
+    [[ -n "$c" && -x "$c" ]] && { echo "$c"; return; }
+  done
+  return 0
+}
+
+RC_LINE="source \"$LPA_DEV_ROOT/shell/lpa-dev.sh\""
+rc_file() {
+  case "$(basename "${SHELL:-bash}")" in
+    zsh) echo "$HOME/.zshrc" ;;
+    *) echo "$HOME/.bashrc" ;;
+  esac
+}
+rc_has_line() { local f; f="$(rc_file)"; [[ -f "$f" ]] && grep -Fq "$LPA_DEV_ROOT/shell/lpa-dev." "$f"; }
+
+# ---------- what needs doing ----------
+NEED_CLONE_LP=0; NEED_CLONE_LPA=0; NEED_APT=0; NEED_ENV=0; NEED_TORCH=0
+NEED_LP=0; NEED_LPA=0; NEED_HOOKS=0; NEED_NVM=0; NEED_NODE=0; NEED_UI=0; NEED_RC=0; NEED_SAVE=0
+APT_MISSING="$(apt_missing)"
+
+plan() {
+  [[ -d "$LP_ROOT" ]] || NEED_CLONE_LP=1
+  [[ -d "$LPA_ROOT" ]] || NEED_CLONE_LPA=1
+  [[ -z "$APT_MISSING" ]] || NEED_APT=1
+  if [[ -z "$ENV_PREFIX" ]]; then
+    NEED_ENV=1; NEED_LP=1; NEED_LPA=1
+    [[ "$TORCH_KIND" == skip ]] || NEED_TORCH=1
+  else
+    if [[ "$TORCH_KIND" != skip ]] && ! py_has torch; then NEED_TORCH=1; fi
+    same_dir "$(editable_src lightning-pose)" "$LP_ROOT" || NEED_LP=1
+  fi
+  if ((SKIP_LP)); then NEED_LP=0; fi
+  if [[ -n "$ENV_PREFIX" ]]; then
+    same_dir "$(editable_src lightning-pose-app)" "$LPA_ROOT/app_server" || NEED_LPA=1
+  fi
+  [[ -f "$LPA_ROOT/.git/hooks/pre-commit" ]] || NEED_HOOKS=1
+  [[ -s "$NVM_DIR/nvm.sh" ]] || NEED_NVM=1
+  if [[ -z "$NODE_MAJOR" || -z "$(node_bin_dir)" ]]; then NEED_NODE=1; fi
+  [[ -x "$LPA_ROOT/web_ui/node_modules/.bin/ng" ]] || NEED_UI=1
+  rc_has_line || NEED_RC=1
+  if ((ENV_FROM_FLAG)) && [[ "$ENV_NAME" != "$SAVED_ENV" ]]; then NEED_SAVE=1; fi
+}
+plan
+
+report() {
+  step "Machine"
+  note "platform:    $PLATFORM ($(uname -sm))"
+  note "lpa-dev:     $LPA_DEV_ROOT"
+  note "conda:       ${CONDA:-not found}"
+  if ((ENV_IS_PATH)); then note "conda env:   $ENV_NAME"
+  else note "conda env:   $ENV_NAME ${ENV_PREFIX:+($ENV_PREFIX)}"; fi
+  note "torch build: $TORCH_KIND$([[ "$TORCH_MODE" == auto ]] && echo " (auto: $(has_gpu && echo 'NVIDIA GPU found' || echo 'no NVIDIA GPU'))")"
+  note "nvm:         $NVM_DIR"
+  note "free disk:   $(free_gb "$HOME") GB in $HOME"
+  if ((ENV_IS_PATH)) && ! same_fs "$(env_parent)" "$HOME"; then
+    note "             $(free_gb "$(env_parent)") GB in $(env_parent) (env)"
+  fi
+
+  step "Status"
+  ((NEED_CLONE_LP)) && todo "clone lightning-pose" || ok "lightning-pose clone"
+  ((NEED_CLONE_LPA)) && todo "clone lightning-pose-app" || ok "lightning-pose-app clone"
+  ((NEED_APT)) && todo "system tools missing: $APT_MISSING" || ok "system tools (${APT_WANT[*]})"
+  if [[ -n "$CONDA" ]]; then ok "conda"
+  elif [[ -n "$ENV_PREFIX" ]]; then note "conda not on PATH in this shell (lpa-dev setup loads the miniforge module if there is one)"
+  else bad "conda not found (install Miniforge, or: module load miniforge)"; fi
+  ((NEED_ENV)) && todo "conda env $ENV_NAME" || ok "conda env $ENV_NAME"
+  if [[ "$TORCH_KIND" == skip ]]; then note "torch: skipped (--torch skip)"
+  elif ((NEED_TORCH)); then todo "torch ($TORCH_KIND)"
+  else ok "torch $("$ENV_PY" -c 'import torch; print(torch.__version__)' 2>/dev/null)"; fi
+  if ((SKIP_LP)); then note "lightning-pose: skipped (--skip-lp)"
+  elif ((NEED_LP)); then todo "lightning-pose editable install"
+  else ok "lightning-pose editable from $LP_ROOT"; fi
+  ((NEED_LPA)) && todo "lightning-pose-app[dev] editable install" || ok "lightning-pose-app editable from $LPA_ROOT/app_server"
+  ((NEED_HOOKS)) && todo "pre-commit hooks in lightning-pose-app" || ok "pre-commit hooks"
+  ((NEED_NVM)) && todo "nvm $NVM_VERSION" || ok "nvm"
+  ((NEED_NODE)) && todo "node ${NODE_MAJOR:-(from web_ui/.nvmrc)}" || ok "node $("$(node_bin_dir)/node" -v)"
+  ((NEED_UI)) && todo "web_ui dependencies (npm ci)" || ok "web_ui dependencies"
+  ((NEED_RC)) && todo "add to $(rc_file): $RC_LINE" || ok "shell startup file sources lpa-dev"
+  ((NEED_SAVE)) && todo "save LPA_CONDA_ENV=$ENV_NAME in .lpa-dev.local" || true
+
+  step "Optional"
+  if [[ -n "$(git config --global user.name 2>/dev/null)" && -n "$(git config --global user.email 2>/dev/null)" ]]; then
+    ok "git identity: $(git config --global user.name)"
+  else
+    todo "git identity: git config --global user.name ... && git config --global user.email ..."
+  fi
+  if command -v gh >/dev/null 2>&1; then
+    gh auth status -h github.com >/dev/null 2>&1 && ok "gh logged in" || todo "gh auth login && gh auth setup-git"
+  else
+    todo "GitHub CLI (gh) not installed: https://github.com/cli/cli#installation"
+  fi
+  local chrome; chrome="$(find_chrome)"
+  [[ -n "$chrome" ]] && ok "Chrome/Chromium for UI tests: $chrome" || todo "Chrome/Chromium for UI tests (lpa-dev test); set CHROME_BIN if installed elsewhere"
+}
+
+report
+
+any_needed() {
+  local v
+  for v in NEED_CLONE_LP NEED_CLONE_LPA NEED_APT NEED_ENV NEED_TORCH NEED_LP NEED_LPA NEED_HOOKS NEED_NVM NEED_NODE NEED_UI NEED_RC NEED_SAVE; do
+    ((${!v})) && return 0
+  done
+  return 1
+}
+
+if [[ "$MODE" == check ]]; then
+  any_needed && exit 1 || exit 0
+fi
+if ! any_needed; then
+  printf '\nNothing to do. In a new terminal: lpa-dev setup\n'
+  exit 0
+fi
+
+# ---------- safety checks before acting ----------
+if ((NEED_ENV || NEED_TORCH || NEED_LP || NEED_LPA)); then
+  [[ -n "$CONDA" ]] || die "conda not found. Install Miniforge (https://conda-forge.org/download/), or on HPC/Jetstream run: module load miniforge"
+  if [[ "$PLATFORM" == studio && -z "$ENV_PREFIX" ]]; then
+    die "Conda env $ENV_NAME not found. On Lightning Studio use the existing cloudspace env; this script will not create one."
+  fi
+  if [[ -n "$ENV_PREFIX" && -n "$BASE_PREFIX" ]] && same_dir "$ENV_PREFIX" "$BASE_PREFIX"; then
+    die "Env $ENV_NAME is the conda base env. Refusing to install into it."
+  fi
+  if ((SKIP_DISK == 0)); then
+    need=$MIN_FREE_GB_APP_ONLY
+    if ((NEED_TORCH || NEED_LP)); then
+      need=$MIN_FREE_GB_CPU; [[ "$TORCH_KIND" == cuda ]] && need=$MIN_FREE_GB_CUDA
+    fi
+    # Node, nvm and node_modules (~2 GB) always go under $HOME; the env may not.
+    check_free() { # check_free DIR GB
+      local have; have="$(free_gb "$1")"
+      if [[ -n "$have" ]] && ((have < $2)); then
+        die "Only ${have} GB free in $1; this needs about $2 GB. Free space, put the env on a volume (--env /volume/path/poseapp), use --skip-lp (app only), or pass --skip-disk-check."
+      fi
+    }
+    if same_fs "$(env_parent)" "$HOME"; then
+      check_free "$HOME" "$need"
+    else
+      check_free "$(env_parent)" "$((need - 2))"
+      check_free "$HOME" 2
+    fi
+  fi
+fi
+
+# ---------- plan and confirmation ----------
+step "Plan"
+((NEED_CLONE_LP))  && note "- git clone $LP_URL"
+((NEED_CLONE_LPA)) && note "- git clone $LPA_URL"
+((NEED_APT))       && note "- sudo apt-get install -y $APT_MISSING   (asks separately)"
+if ((NEED_ENV)); then
+  if ((ENV_IS_PATH)); then note "- conda create -p $ENV_NAME python=$PYTHON_VERSION (package cache: $(env_parent)/conda-pkgs)"
+  else note "- conda create -n $ENV_NAME python=$PYTHON_VERSION"; fi
+fi
+((NEED_SAVE))      && note "- save LPA_CONDA_ENV=$ENV_NAME in .lpa-dev.local"
+if ((NEED_TORCH)); then
+  if [[ "$TORCH_KIND" == cpu ]]; then note "- pip install torch torchvision (CPU build, download.pytorch.org/whl/cpu)"
+  else note "- pip install torch torchvision (default CUDA build)"; fi
+fi
+((NEED_LP))        && note "- pip install -e lightning-pose"
+((NEED_LPA))       && note "- pip install -e lightning-pose-app/app_server[dev]"
+((NEED_HOOKS))     && note "- pre-commit install (lightning-pose-app)"
+((NEED_NVM))       && note "- install nvm $NVM_VERSION into $NVM_DIR (no shell-file edits)"
+((NEED_NODE))      && note "- nvm install ${NODE_MAJOR:-<web_ui/.nvmrc>}"
+((NEED_UI))        && note "- npm ci in lightning-pose-app/web_ui"
+((NEED_RC))        && note "- append to $(rc_file): $RC_LINE   (asks separately)"
+
+if [[ "$MODE" == dry-run ]]; then
+  printf '\nDry run: nothing changed.\n'
+  exit 0
+fi
+if ((ASSUME_YES == 0)); then
+  echo
+  [[ -t 0 ]] || die "Not a terminal; rerun with --yes to accept the plan."
+  confirm "Run this plan?" || { echo "Stopped. Nothing changed."; exit 1; }
+fi
+
+# ---------- steps ----------
+export PIP_NO_CACHE_DIR=1   # keep the disk footprint down; reinstalls just redownload
+
+if ((NEED_SAVE)); then
+  step "Save env choice"
+  touch "$LOCAL_CONF"
+  grep -v '^LPA_CONDA_ENV=' "$LOCAL_CONF" > "$LOCAL_CONF.tmp" || true
+  echo "LPA_CONDA_ENV=$ENV_NAME" >> "$LOCAL_CONF.tmp"
+  mv "$LOCAL_CONF.tmp" "$LOCAL_CONF"
+  note "LPA_CONDA_ENV=$ENV_NAME in $LOCAL_CONF"
+fi
+
+if ((NEED_CLONE_LP)); then step "Clone lightning-pose"; git clone "$LP_URL" "$LP_ROOT"; fi
+if ((NEED_CLONE_LPA)); then step "Clone lightning-pose-app"; git clone "$LPA_URL" "$LPA_ROOT"; fi
+[[ -d "$LP_ROOT/.git" ]] || die "$LP_ROOT exists but is not a git clone."
+[[ -d "$LPA_ROOT/.git" ]] || die "$LPA_ROOT exists but is not a git clone."
+if [[ -z "$NODE_MAJOR" && -f "$LPA_ROOT/web_ui/.nvmrc" ]]; then
+  NODE_MAJOR="$(tr -d '[:space:]v' < "$LPA_ROOT/web_ui/.nvmrc")"
+fi
+
+if ((NEED_APT)); then
+  step "System tools: $APT_MISSING"
+  if ! command -v apt-get >/dev/null 2>&1; then
+    note "No apt-get here. Install yourself: $APT_MISSING"
+  elif ((ALLOW_APT)) || confirm "Run: sudo apt-get install -y $APT_MISSING ?"; then
+    # shellcheck disable=SC2086
+    sudo apt-get update && sudo apt-get install -y $APT_MISSING
+  else
+    note "Skipped. Install later: sudo apt-get install -y $APT_MISSING"
+  fi
+fi
+
+if ((NEED_ENV)); then
+  step "Create conda env $ENV_NAME (python $PYTHON_VERSION)"
+  if ((ENV_IS_PATH)); then
+    CONDA_PKGS_DIRS="$(env_parent)/conda-pkgs" "$CONDA" create -y -p "$ENV_NAME" "python=$PYTHON_VERSION"
+  else
+    "$CONDA" create -y -n "$ENV_NAME" "python=$PYTHON_VERSION"
+  fi
+  ENV_PREFIX="$(env_prefix)"
+  [[ -n "$ENV_PREFIX" ]] || die "conda create finished but env $ENV_NAME is not listed."
+  ENV_PY="$ENV_PREFIX/bin/python"
+fi
+
+pip_env() { "$ENV_PY" -m pip "$@"; }
+if ((NEED_TORCH || NEED_LP || NEED_LPA)); then
+  [[ -x "$ENV_PY" ]] || die "No python in $ENV_PREFIX."
+  # Never install into anything but the env we checked.
+  same_dir "$("$ENV_PY" -c 'import sys; print(sys.prefix)')" "$ENV_PREFIX" || die "python in $ENV_PREFIX reports another prefix."
+fi
+
+if ((ENV_IS_PATH)) && ((NEED_TORCH || NEED_LP || NEED_LPA)); then
+  # pip unpacks and builds wheels in TMPDIR; keep that on the env's drive too.
+  export TMPDIR="$(env_parent)/tmp"
+  mkdir -p "$TMPDIR"
+fi
+if ((NEED_TORCH)); then
+  step "Install torch ($TORCH_KIND)"
+  if [[ "$TORCH_KIND" == cpu ]]; then
+    pip_env install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+  else
+    pip_env install torch torchvision
+  fi
+fi
+if ((NEED_LP)); then step "Install lightning-pose (editable)"; pip_env install -e "$LP_ROOT"; fi
+if ((NEED_LPA)); then step "Install lightning-pose-app[dev] (editable)"; pip_env install -e "$LPA_ROOT/app_server[dev]"; fi
+
+if ((NEED_HOOKS)); then
+  step "pre-commit hooks"
+  if [[ -n "$ENV_PREFIX" && -x "$ENV_PREFIX/bin/pre-commit" ]]; then
+    (cd "$LPA_ROOT" && "$ENV_PREFIX/bin/pre-commit" install)
+  else
+    note "pre-commit not in env $ENV_NAME yet; rerun lpa-dev init after the app install."
+  fi
+fi
+
+if ((NEED_NVM)); then
+  step "Install nvm $NVM_VERSION"
+  # PROFILE=/dev/null stops the nvm installer from editing shell startup files.
+  curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" \
+    | NVM_DIR="$NVM_DIR" PROFILE=/dev/null bash
+fi
+if ((NEED_NODE)); then
+  [[ -n "$NODE_MAJOR" ]] || die "No web_ui/.nvmrc to read the Node version from."
+  step "Install Node $NODE_MAJOR"
+  (
+    set +u
+    export NVM_DIR
+    # shellcheck source=/dev/null
+    source "$NVM_DIR/nvm.sh" --no-use
+    nvm install "$NODE_MAJOR"
+  )
+fi
+
+if ((NEED_UI)); then
+  step "web_ui dependencies (npm ci)"
+  node_dir="$(node_bin_dir)"
+  [[ -n "$node_dir" ]] || die "Node $NODE_MAJOR not found under $NVM_DIR."
+  (cd "$LPA_ROOT/web_ui" && PATH="$node_dir:$PATH" npm ci)
+fi
+
+if ((NEED_RC)); then
+  rc="$(rc_file)"
+  step "Shell startup file"
+  if ((ALLOW_RC)) || confirm "Append to $rc: $RC_LINE ?"; then
+    printf '\n# lpa-dev helpers (added by lpa-dev init)\n%s\n' "$RC_LINE" >> "$rc"
+    note "Added to $rc."
+  else
+    note "Skipped. Add it yourself: echo '$RC_LINE' >> $rc"
+  fi
+fi
+
+step "Done"
+note "Open a new terminal, then:"
+note "  lpa-dev setup     # activates $ENV_NAME and Node $NODE_MAJOR in that terminal"
+note "  lpa-dev status"
+note "Rerun 'lpa-dev init --check' to see anything still missing."

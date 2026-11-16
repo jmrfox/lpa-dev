@@ -29,7 +29,7 @@ Claude Code is the primary agent. Cursor is used afterwards to review Claude's c
 - `BUGS.md` — bug log with status and covering test
 - `UPSTREAM_CHANGES.md` — changes we plan to propose to EKS and LP, with what LPA does meanwhile
 - `lpa-code-reviews/` — code-review trackers for LPA
-- `bin/lpa-dev`, `shell/lpa-dev.zsh` — dev helpers (`lpa-dev setup`, `run`, `test`, `gitstatus`)
+- `bin/lpa-dev`, `bin/lpa-dev-init`, `shell/lpa-dev.sh` — dev helpers (`lpa-dev init` once per machine; `setup`, `run`, `test`, `gitstatus`)
 
 ## LPA project instructions
 

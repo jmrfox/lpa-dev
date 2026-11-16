@@ -52,3 +52,5 @@
 datasets/
 # Claude Code per-machine settings
 .claude/settings.local.json
+# Per-machine lpa-dev choices (written by lpa-dev init)
+/.lpa-dev.local
