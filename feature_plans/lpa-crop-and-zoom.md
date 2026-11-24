@@ -109,9 +109,12 @@ Create Model dialog gets a **Crop and zoom** section (single-view projects only)
 `createTrainTask` writes `cropzoom.yaml` next to `config.yaml`. The scheduler, for a model with `cropzoom.yaml`:
 
 1. Waits until the detector is COMPLETED (stays PENDING; fails with a clear message if the detector failed or was deleted).
-2. Runs, in the model's log files, `litpose predict $DET <label csv>`, `litpose create_bbox $DET <label csv> <size options>`, `litpose crop $DET <label csv>`.
-   - Step 2 is rerun every time, even though detector training already predicted on its labels: labels added after the detector was trained would have no box, and `crop` would fail.
-3. Runs `litpose train <config> --output_dir <model> --detector_model $DET`.
+2. Runs, in the model's log files, with `<det csv>` the detector's own label file:
+   - `litpose predict $DET <det csv>`
+   - `litpose create_bbox $DET <det csv> <size options>` → `$DET/image_preds/<det csv>/bbox.csv`
+   - `litpose crop $DET <pose csv> --bbox_dir $DET/image_preds/<det csv>` → crops and `$DET/image_preds/<pose csv>/cropped_<pose csv>`, the path `--detector_model` reads.
+   The detector is never run on the pose label file: with fewer keypoints, `litpose predict` exits 1 there (tested, below). The predict step is rerun every time so that labels added after the detector was trained get boxes (the detector label file has to be rewritten from the pose label file first, if it is a subset).
+3. Runs `litpose train <config> --output_dir <model> --detector_model $DET --overrides eval.predict_vids_after_training=false`, unless the project videos were cropped too (open question 2). Without the override, training exits 1 at the end (tested, below).
 
 A new status (for example `PREPARING_CROPS`) shows that steps 2 are running. The GPU lock is held for the whole chain.
 
@@ -149,11 +152,31 @@ Change 004 to leave `data_dir`/`video_dir` alone for models with `cropzoom.yaml`
    - b. Rerun the crops each time and accept that older pose models' training data changed (only matters for retraining).
    - c. Propose upstream (`UPSTREAM_CHANGES.md`): let `litpose crop` / `train --detector_model` take an output folder, so crops live in the pose model's folder.
    Leaning a for v1, c upstream.
-2. **Videos for unsupervised losses.** `train --detector_model` sets the pose model's video folder to `$DET/cropped_videos`, which is empty unless videos were cropped. Semi-supervised pose models need cropped videos (detector predict + `create_bbox` + `crop` on the project videos). v1 could allow supervised pose models only, or add those steps.
+2. **Videos for unsupervised losses.** `train --detector_model` sets the pose model's video folder to `$DET/cropped_videos`, which is empty unless videos were cropped. Semi-supervised pose models need cropped videos (detector predict + `create_bbox` + `crop` on the project videos). v1 could allow supervised pose models only, or add those steps. With no cropped videos, training needs `eval.predict_vids_after_training=false` (tested, below).
 3. **Box smoothing.** `--detector` does not smooth. Leave smoothing out of v1?
 4. **Multiview.** LP supports multiview crop and zoom at inference (`--bbox_dir`) but not training (roadmap). Leave multiview out of v1?
-5. **Detector keypoints.** Train the detector on the same label file (simplest, the user does nothing new), or let the user pick a subset of keypoints for the detector?
+5. **Detector keypoints.** From the lab meeting: the detector trains on a subset of keypoints. LP has no setting for that; the detector needs its own label file with only those columns. The subset route works (tested, below). Open: does LPA write that file (from the pose label file, rewritten before each pose model so new labels are included), and where (a project label file the user sees, or inside the detector's folder)? The other way to get a subset is to train on all keypoints and build the box from `--anchor_keypoints`.
 6. **Pose model labeled-frame predictions.** LP's post-training predictions for the pose model are in crop coordinates (`train.py` sets `bbox_files = None` on purpose). LPA does not show them today; if it ever does, they need mapping back (`litpose remap`).
+
+## Test on charis-bot-up (2026-11-24)
+
+LP 2.4.4 (`eed0301`), poseapp env, RTX 4070. Project `LPProjects/charis-bot-up`: single-view bottom-up mouse, 1120×1120 frames, `CollectedData.csv` 493 frames × 8 keypoints; the mouse spans about 200 px. Everything was written to the session scratchpad; nothing in the project was changed.
+
+Setup: LP's `config_default.yaml`, heatmap, `resnet50_animal_ap10k`, supervised, 256×256, 40 epochs, `dlc-top-down`. Detector label file `CollectedData_det.csv`: the same 493 rows, only `l_h_paw`, `r_h_paw`, `tailbase`, `tailtip` (each missing in at most 2 frames). Anchor keypoints: those four, `crop_ratio` 2.0.
+
+| Step | Result |
+|---|---|
+| `litpose train config_det.yaml` (4 keypoints) | Trained, about 6 min. Median error train 7–9 px, validation 7–11 px (full frame). Exited 1 at the end only because I set `eval.test_videos_directory: null`; LPA's configs set it. |
+| `litpose predict $DET CollectedData.csv` (8-keypoint file) | `predictions.csv` written, complete (493 rows, 4 keypoints), then **exit 1** in `compute_metrics_single`: `operands could not be broadcast together with shapes (493,8,2) (493,4,2)`. |
+| `create_bbox $DET CollectedData.csv` + `crop $DET CollectedData.csv` on those predictions | Both exit 0. 2450 images cropped (labeled frames and their neighbors). `cropped_CollectedData.csv` has all 8 keypoints. |
+| Route without the error: `create_bbox $DET CollectedData_det.csv` (training-time predictions), then `crop $DET CollectedData.csv --bbox_dir $DET/image_preds/CollectedData_det.csv` | Both exit 0. `cropped_CollectedData.csv` byte-identical to the row above. |
+| `litpose train config_pose.yaml --detector_model $DET` (8 keypoints) | Trained, about 3 min. Median validation error 3–17 px (crop coordinates). Then **exit 1**: `OSError: Did not find any valid video files in $DET/cropped_videos`. Checkpoint saved, `train_status.json` left at `EVALUATING`, so LPA's scheduler would mark the model FAILED. Saved `config.yaml` has `data_dir`, `video_dir`, `csv_file`, `test_videos_directory` all inside `$DET`. |
+| Same, plus `--overrides eval.predict_vids_after_training=false` | Exit 0, `train_status.json` COMPLETED. |
+| `litpose predict $POSE videos/12808-short.mp4 --detector $DET --anchor_keypoints … --skip_viz` | Exit 0, 7200 frames in 34 s. `12808-short.csv` (8 keypoints, no NaNs) and `12808-short_bbox.csv` (7200 rows). Every prediction lies inside its frame's box. Frame 3000 drawn: the mouse is in the top-left corner and box and keypoints sit on it. Boxes have negative x/y near the frame edge (box reaches past the frame). |
+
+Also seen:
+- With crop ratio 2.0 on these four keypoints, training boxes were 144–1966 px (median 474); 82 of 3508 labeled points (2%) fell outside their box. The tail makes the keypoint spread large. On the video, boxes were 72–508 px (median 280).
+- Each crop-and-zoom pose model's crops and labels go into the detector folder, as above (open question 1).
 
 ## Tests (to write with the change)
 
