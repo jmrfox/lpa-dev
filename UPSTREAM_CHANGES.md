@@ -56,3 +56,15 @@ The full investigation is in `feature_plans/lpa-eks-linear-nonlinear.md`.
 **What:** Install directions per OS in LP's docs (`docs/source/installation_guide.rst`): Linux supports everything; Windows supports labeling only and should use WSL2 for full features; macOS supports labeling only.
 
 **What LPA does meanwhile:** nothing; the docs live in LP.
+
+### Output folder for `litpose crop`
+
+**Status:** Planned (draft written; for paninski-lab/lightning-pose-app#209).
+
+**What:** `litpose crop --output_dir` so crops go somewhere other than the detector's folder, and a way for `litpose train` to train on crops from that folder (a new option, or `--detector_model` accepting it).
+
+**Why:** `crop` always writes to `<detector>/cropped_images`, `<detector>/cropped_videos` and `<detector>/image_preds/<csv>/cropped_<csv>`, and `train --detector_model` reads those fixed paths. Two pose models on one detector with different box settings write their crops to the same place, and the first pose model's `config.yaml` then points at the second's crops.
+
+**What LPA does meanwhile:** one box setting per detector (`feature_plans/lpa-crop-and-zoom.md`, open question 1).
+
+**What LPA can remove once done:** the one-setting lock; crops would go in each pose model's own folder.
